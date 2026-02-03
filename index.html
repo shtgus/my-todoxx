@@ -69,9 +69,10 @@
         .tag-node { 
             font-size: 0.8rem; padding: 8px 12px; cursor: pointer; border-radius: 8px; 
             color: var(--text-sec); margin: 2px 4px; display: flex; justify-content: space-between;
+            transition: 0.2s;
         }
-        .tag-node:hover { background: #F8FAFC; color: var(--secondary); }
-        .tag-node.active { background: #EFF6FF; color: var(--secondary); font-weight: 600; }
+        .tag-node:hover { background: var(--primary-light); color: var(--primary); }
+        .tag-node.active { background: var(--primary-light); color: var(--primary); font-weight: 600; }
         .tag-count { font-size: 0.7rem; opacity: 0.5; }
 
         /* 中间列表 */
@@ -120,7 +121,7 @@
         
         .note-card { 
             background: #F8FAFC; border-radius: 12px; padding: 16px; margin-bottom: 12px; 
-            font-size: 0.85rem; border-left: 4px solid var(--secondary);
+            font-size: 0.85rem; border-left: 4px solid var(--primary); /* 统一颜色为莫兰迪粉 */
         }
 
         /* 滚动条 */
@@ -139,6 +140,15 @@
             margin: 10px 16px; padding: 6px 12px; border: 1px solid var(--border);
             border-radius: 8px; font-size: 0.75rem; width: calc(100% - 32px); outline: none;
         }
+
+        .filter-banner {
+            background: var(--primary-light); color: var(--primary);
+            padding: 8px 16px; border-radius: 10px; margin: 0 8px 12px;
+            display: flex; justify-content: space-between; align-items: center;
+            font-size: 0.85rem; font-weight: 600;
+        }
+        .clear-filter { cursor: pointer; opacity: 0.7; }
+        .clear-filter:hover { opacity: 1; }
     </style>
 </head>
 <body>
@@ -208,10 +218,10 @@
                 </div>
                 <button onclick="addTask()">添加任务</button>
             </div>
-            <div id="tag-selector" style="margin-top:12px; display:flex; gap:8px; flex-wrap:wrap;"></div>
         </div>
 
         <div class="panel scroll" style="flex: 1;">
+            <div id="current-filter-info"></div>
             <div id="list-container" class="todo-list"></div>
         </div>
     </div>
@@ -229,7 +239,7 @@
 
         <div class="panel scroll" style="flex: 1; padding: 20px;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
-                <span id="note-type-label" style="font-weight:600; color:var(--secondary)">💡 灵感笔记</span>
+                <span id="note-type-label" style="font-weight:600; color:var(--primary)">💡 灵感笔记</span>
                 <button onclick="toggleNoteEditor()" style="padding:4px 10px; font-size:0.7rem;">+ 新建</button>
             </div>
             
@@ -260,6 +270,7 @@
     let pomoCount = parseInt(localStorage.getItem('pomo_v88')) || 0;
     
     let currentFilter = 'today'; 
+    let activeTag = null; // 当前激活的标签筛选
     let memoSearchText = '';
 
     window.onload = function() {
@@ -268,7 +279,7 @@
         render(); renderTagTree(); nextBook();
     };
 
-    // --- 同步核心 (不改动原有逻辑) ---
+    // --- 同步核心 ---
     async function initSupabase() {
         const code = document.getElementById('sync-code').value;
         if (!code || typeof supabase === 'undefined') return;
@@ -317,19 +328,71 @@
     // --- 导航与过滤 ---
     function setFilter(f, el) { 
         currentFilter = f; 
+        activeTag = null; // 切换时间维度时清除标签筛选
         document.querySelectorAll('.nav-item').forEach(x => x.classList.remove('active'));
+        document.querySelectorAll('.tag-node').forEach(x => x.classList.remove('active'));
         if (el) el.classList.add('active');
         render(); 
+    }
+
+    function setTagFilter(tag) {
+        activeTag = tag;
+        currentFilter = 'tag'; // 特殊维度
+        document.querySelectorAll('.nav-item').forEach(x => x.classList.remove('active'));
+        render();
+        renderTagTree(); // 更新标签树的选中状态
+    }
+
+    function clearTagFilter() {
+        setFilter('today', document.getElementById('nav-today'));
     }
 
     // --- 核心渲染 ---
     function render() {
         const container = document.getElementById('list-container');
+        const filterInfo = document.getElementById('current-filter-info');
         container.innerHTML = '';
+        filterInfo.innerHTML = '';
+        
         const todayStr = new Date().toISOString().split('T')[0];
         const week = getWeekRange();
 
-        // 任务过滤逻辑
+        // 标签筛选模式
+        if (currentFilter === 'tag' && activeTag) {
+            filterInfo.innerHTML = `
+                <div class="filter-banner">
+                    <span>正在查看标签: #${activeTag}</span>
+                    <span class="clear-filter" onclick="clearTagFilter()">清除筛选 ✕</span>
+                </div>
+            `;
+            
+            const filteredNotes = myNotes.filter(n => {
+                const tags = n.parsedTags || [];
+                const isUnclassified = tags.length === 0 && activeTag === "未分类";
+                return tags.includes(activeTag) || isUnclassified;
+            });
+
+            filteredNotes.forEach(n => {
+                const item = document.createElement('div');
+                item.className = 'todo-item';
+                item.innerHTML = `
+                    <div class="todo-content">
+                        <span style="font-size: 1.2rem; margin-right: 8px;">💡</span>
+                        <span class="todo-text">${n.desc}</span>
+                        <span class="todo-meta">${n.time.split(' ')[0]}</span>
+                    </div>
+                `;
+                container.appendChild(item);
+            });
+
+            if(filteredNotes.length === 0) {
+                container.innerHTML = `<div style="text-align:center; color:#CBD5E1; margin-top:40px; font-size:0.8rem;">该标签下暂无灵感</div>`;
+            }
+            updateStats();
+            return;
+        }
+
+        // 常规任务过滤逻辑
         let filteredTasks = tasks;
         if (currentFilter === 'today') {
             filteredTasks = tasks.filter(t => !t.done && (t.date === todayStr || t.date < todayStr));
@@ -341,7 +404,12 @@
             filteredTasks = tasks.filter(t => !t.done);
         }
 
-        // 排序：置顶优先，日期最近优先
+        // 搜索过滤
+        if (memoSearchText) {
+            filteredTasks = filteredTasks.filter(t => t.name.includes(memoSearchText));
+        }
+
+        // 排序
         filteredTasks.sort((a,b) => (b.pinned - a.pinned) || (a.date > b.date ? 1 : -1));
 
         filteredTasks.forEach(t => {
@@ -409,7 +477,8 @@
         
         let html = '';
         Object.keys(tagCounts).sort().forEach(tag => {
-            html += `<div class="tag-node" onclick="alert('即将支持标签筛选内容')">
+            const isActive = activeTag === tag;
+            html += `<div class="tag-node ${isActive?'active':''}" onclick="setTagFilter('${tag}')">
                 <span># ${tag}</span><span class="tag-count">${tagCounts[tag]}</span>
             </div>`;
         });
