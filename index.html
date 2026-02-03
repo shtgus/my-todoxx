@@ -17,7 +17,6 @@
             margin: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden;
         }
 
-        /* 新增：同步状态条样式 */
         .sync-banner { 
             background: #334155; color: white; padding: 6px 24px; 
             display: flex; justify-content: space-between; align-items: center; 
@@ -39,20 +38,17 @@
             overflow: hidden; border: 1px solid var(--border);
         }
 
-        /* 顶部统计 */
         .stats-bar { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px; }
         .stat-card { background: #fff; padding: 18px; border-radius: 16px; text-align: center; border: 1px solid var(--border); }
         .stat-val { font-size: 1.4rem; font-weight: 700; color: var(--morandi-red); }
 
-        /* 输入区与标签管理 */
         .input-area { background: white; padding: 16px; border-radius: 16px; border: 1px solid var(--border); margin-bottom: 24px; }
         .input-row { display: flex; gap: 12px; align-items: center; margin-bottom: 12px; }
         .input-row input[type="text"] { flex: 1; border: none; outline: none; font-size: 1rem; }
         
-        .tag-pill { padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; cursor: pointer; border: 1px solid transparent; transition: 0.2s; background: #F1F5F9; margin-right: 5px; margin-bottom: 5px; display: inline-block; }
+        .tag-pill { padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; cursor: pointer; border: 1px solid ; transition: 0.2s; background: #F1F5F9; margin-right: 5px; margin-bottom: 5px; display: inline-block; }
         .tag-pill.active { border-color: currentColor; background: white; font-weight: bold; }
 
-        /* 任务列表详情展开 */
         .todo-item { border-bottom: 1px solid #F1F5F9; }
         .todo-main { display: flex; align-items: center; padding: 16px; cursor: pointer; }
         .todo-main:hover { background: #FAFBFC; }
@@ -62,24 +58,20 @@
         }
         .todo-item.active .todo-details { max-height: 400px; padding: 16px; border-top: 1px solid #EEE; }
 
-        /* 侧边导航 */
         .nav-item { 
             padding: 12px 20px; margin: 4px 16px; cursor: pointer; border-radius: 12px; 
             font-size: 0.9rem; color: var(--text-sec); display: flex; align-items: center; gap: 12px;
         }
         .nav-item.active { background: var(--morandi-red-light); color: var(--morandi-red); font-weight: 600; }
 
-        /* 番茄钟面板 */
         .pomo-timer { text-align: center; padding: 24px; }
         .pomo-setting { margin-top: 10px; font-size: 0.75rem; color: var(--text-sec); }
         .pomo-setting input { width: 45px; border: 1px solid #EEE; border-radius: 4px; text-align: center; }
 
-        /* 通用按钮 */
         button { background: var(--morandi-red); color: white; border: none; padding: 8px 16px; border-radius: 10px; cursor: pointer; transition: 0.2s; }
         button:hover { opacity: 0.9; }
         .btn-ghost { background: #F1F5F9; color: var(--text-sec); }
 
-        /* 日历悬停气泡 */
         .cal-day { height: 36px; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; }
         .cal-pop {
             position: absolute; bottom: 110%; left: 50%; transform: translateX(-50%);
@@ -91,6 +83,14 @@
         .scroll { overflow-y: auto; scrollbar-width: none; }
         .scroll::-webkit-scrollbar { display: none; }
         textarea { width: 100%; border: 1px solid var(--border); border-radius: 8px; padding: 10px; font-size: 0.85rem; resize: none; outline: none; box-sizing: border-box; }
+        
+        /* 扫雷特定样式 */
+        .mine-cell {
+            background: #F1F5F9; display: flex; align-items: center; justify-content: center; 
+            font-size: 0.8rem; font-weight: bold; cursor: pointer; transition: 0.1s; 
+            user-select: none; border-radius: 2px;
+        }
+        .mine-cell.revealed { background: #FFFFFF; }
     </style>
 </head>
 <body>
@@ -156,15 +156,18 @@
 
         <div class="panel scroll" style="flex: 1; padding: 20px;">
             <div style="font-weight: bold; color: var(--morandi-red); margin-bottom: 10px; display: flex; justify-content: space-between;">
-                <span>🐢 海龟汤</span>
-                <small id="soup-count" style="font-weight:normal; color:#CCC"></small>
+                <span>💣 专注扫雷</span>
+                <small id="mine-count" style="font-weight:normal; color:var(--text-sec)">雷: 10</small>
             </div>
-            <div id="soup-f" style="font-size: 0.85rem; line-height: 1.6;"></div>
-            <details style="margin-top: 10px; background: #F8FAFC; padding: 10px; border-radius: 10px;">
-                <summary style="font-size:0.8rem; cursor:pointer; color:var(--text-sec)">查看真相</summary>
-                <div id="soup-b" style="color: #B07070; font-size: 0.8rem; padding-top: 5px;"></div>
-            </details>
-            <button onclick="nextSoup()" style="margin-top: 15px; width: 100%; font-size: 0.8rem; background: var(--morandi-red-light); color: var(--morandi-red);">换一碗</button>
+            
+            <div id="mine-board" style="display: grid; grid-template-columns: repeat(9, 1fr); gap: 2px; background: #E5E7EB; border: 2px solid #E5E7EB; border-radius: 8px; aspect-ratio: 1/1;">
+            </div>
+
+            <div style="display: flex; gap: 8px; margin-top: 12px;">
+                <button onclick="initMines()" style="flex: 1; font-size: 0.8rem; background: var(--morandi-red-light); color: var(--morandi-red);">重新开始</button>
+                <button id="mine-mode" onclick="toggleMineMode()" class="btn-ghost" style="font-size: 0.8rem; width: 40px;">⛏️</button>
+            </div>
+            <p style="font-size: 0.6rem; color: var(--text-sec); margin-top: 8px; text-align: center;">左键挖开，右键(或切换模式)插旗</p>
         </div>
     </div>
 </div>
@@ -176,16 +179,6 @@
     let supabaseClient = null;
 
     // --- 2. 核心数据 ---
-    const soupLibrary = [
-        {f: "男子点了一碗海龟汤。喝了一口后，走出餐馆自杀了。", b: "曾流落荒岛吃过妻子肉做的假海龟汤，真汤让他发现真相。"},
-        {f: "男人死在沙漠里，手里攥着半根火柴。", b: "热气球失重抽签跳伞，他抽到了最短的火柴。"},
-        {f: "盲人吃海鸥肉，吃了一口就自杀了。", b: "他发现当年救命的“海鸥肉”其实是遇难的亲人。"},
-        {f: "灯塔守卫关灯睡觉，醒来发现自杀了。", b: "因为关灯导致巨轮触礁。"},
-        {f: "男人向服务员要水，服务员拔枪，男人道谢离开。", b: "打嗝被吓好了。"},
-        {f: "窗外有鸟叫，男人感到恐惧。", b: "那是地震前兆，盲人听声音判断。"},
-        {f: "冰块上吊：房间只有尸体和一滩水。", b: "踩在冰块上自杀，冰化了。"}
-    ];
-
     let tags = JSON.parse(localStorage.getItem('tags_v88')) || [
         {id: 't1', name: '工作', color: '#8E9EAB'},
         {id: 't2', name: '生活', color: '#A3B18A'},
@@ -196,20 +189,115 @@
     let currentFilter = 'today';
     let selectedTagId = 't1';
 
-    // --- 3. 初始化与同步逻辑 ---
+    // --- 3. 扫雷逻辑 ---
+    let mineBoard = [];
+    const boardSize = 9, mineNum = 10;
+    let isFlagMode = false, gameOver = false;
+
+    function initMines() {
+        const container = document.getElementById('mine-board');
+        container.innerHTML = '';
+        mineBoard = [];
+        gameOver = false;
+        document.getElementById('mine-count').innerText = `雷: ${mineNum}`;
+        for (let i = 0; i < boardSize * boardSize; i++) {
+            mineBoard.push({ isMine: false, revealed: false, flagged: false, count: 0 });
+        }
+        let placed = 0;
+        while (placed < mineNum) {
+            let idx = Math.floor(Math.random() * mineBoard.length);
+            if (!mineBoard[idx].isMine) { mineBoard[idx].isMine = true; placed++; }
+        }
+        for (let i = 0; i < mineBoard.length; i++) {
+            if (mineBoard[i].isMine) continue;
+            let r = Math.floor(i / boardSize), c = i % boardSize;
+            for (let dr = -1; dr <= 1; dr++) {
+                for (let dc = -1; dc <= 1; dc++) {
+                    let nr = r + dr, nc = c + dc;
+                    if (nr >= 0 && nr < boardSize && nc >= 0 && nc < boardSize) {
+                        if (mineBoard[nr * boardSize + nc].isMine) mineBoard[i].count++;
+                    }
+                }
+            }
+        }
+        mineBoard.forEach((cell, i) => {
+            const div = document.createElement('div');
+            div.className = 'mine-cell';
+            div.id = `cell-${i}`;
+            div.onclick = () => handleCellClick(i);
+            div.oncontextmenu = (e) => { e.preventDefault(); handleCellClick(i, true); };
+            container.appendChild(div);
+        });
+    }
+
+    function handleCellClick(i, forceFlag = false) {
+        if (gameOver || mineBoard[i].revealed) return;
+        if (isFlagMode || forceFlag) {
+            mineBoard[i].flagged = !mineBoard[i].flagged;
+            document.getElementById(`cell-${i}`).innerText = mineBoard[i].flagged ? '🚩' : '';
+            return;
+        }
+        if (mineBoard[i].flagged) return;
+        if (mineBoard[i].isMine) {
+            revealAll();
+            alert('💥 踩到雷了！');
+            gameOver = true;
+        } else {
+            recursiveReveal(i);
+            checkWin();
+        }
+    }
+
+    function recursiveReveal(i) {
+        if (i < 0 || i >= mineBoard.length || mineBoard[i].revealed || mineBoard[i].flagged) return;
+        mineBoard[i].revealed = true;
+        const dom = document.getElementById(`cell-${i}`);
+        dom.classList.add('revealed');
+        dom.innerText = mineBoard[i].count > 0 ? mineBoard[i].count : '';
+        dom.style.color = ['#3B82F6', '#10B981', '#EF4444', '#6366F1', '#B45309', '#06B6D4', '#000', '#777'][mineBoard[i].count - 1];
+        if (mineBoard[i].count === 0) {
+            let r = Math.floor(i / boardSize), c = i % boardSize;
+            for (let dr = -1; dr <= 1; dr++) {
+                for (let dc = -1; dc <= 1; dc++) {
+                    let nr = r + dr, nc = c + dc;
+                    if (nr >= 0 && nr < boardSize && nc >= 0 && nc < boardSize) recursiveReveal(nr * boardSize + nc);
+                }
+            }
+        }
+    }
+
+    function revealAll() {
+        mineBoard.forEach((cell, i) => {
+            const dom = document.getElementById(`cell-${i}`);
+            if (cell.isMine) dom.innerText = '💣';
+            dom.style.background = cell.isMine ? '#FEE2E2' : '#FFFFFF';
+        });
+    }
+
+    function checkWin() {
+        if (mineBoard.filter(c => !c.isMine).every(c => c.revealed)) {
+            alert('🎉 扫雷成功！');
+            gameOver = true;
+        }
+    }
+
+    function toggleMineMode() {
+        isFlagMode = !isFlagMode;
+        document.getElementById('mine-mode').innerText = isFlagMode ? '🚩' : '⛏️';
+    }
+
+    // --- 4. 初始化与同步逻辑 ---
     window.onload = function() {
         updateClock();
         setInterval(updateClock, 1000);
         renderTags();
         render();
-        nextSoup();
-        document.getElementById('soup-count').innerText = `精选库: ${soupLibrary.length}`;
+        initMines();
     };
 
     async function initSupabase() {
         const code = document.getElementById('sync-code').value;
         if (!code || typeof supabase === 'undefined') return;
-        
         try {
             supabaseClient = supabase.createClient(SB_URL, SB_KEY);
             document.getElementById('sync-status').innerText = '同步中...';
@@ -244,7 +332,7 @@
 
     function save() { saveLocally(); saveCloud(); render(); }
 
-    // --- 4. 业务逻辑 (v6.0 原版平移) ---
+    // --- 5. 业务逻辑 ---
     function updateClock() {
         const now = new Date();
         document.getElementById('live-time').innerText = now.toLocaleTimeString('zh-CN', {hour:'2-digit', minute:'2-digit'});
@@ -283,8 +371,6 @@
         const container = document.getElementById('list-container');
         container.innerHTML = '';
         const todayStr = new Date().toISOString().split('T')[0];
-
-        // 统计更新
         const todayScope = tasks.filter(t => t.date === todayStr || (t.date < todayStr && !t.done));
         document.getElementById('stat-progress').innerText = (todayScope.length ? Math.round(todayScope.filter(x=>x.done).length/todayScope.length*100) : 0) + "%";
         document.getElementById('stat-pending').innerText = todayScope.filter(x=>!x.done).length;
@@ -341,13 +427,11 @@
         }
     }
 
-    // --- 5. 交互与白噪音 ---
     function updateTask(id, k, v) { const t=tasks.find(x=>x.id===id); if(t) t[k]=v; save(); }
     function toggleDone(id) { const t=tasks.find(x=>x.id===id); t.done=!t.done; save(); }
     function delTask(id) { tasks=tasks.filter(x=>x.id!==id); save(); }
     function setFilter(f, el) { currentFilter=f; document.querySelectorAll('.nav-item').forEach(x=>x.classList.remove('active')); el.classList.add('active'); render(); }
-    function nextSoup() { const s=soupLibrary[Math.floor(Math.random()*soupLibrary.length)]; document.getElementById('soup-f').innerText=s.f; document.getElementById('soup-b').innerText=s.b; }
-
+    
     let pTime=1500, pInt=null;
     function resetPomo() { pTime=document.getElementById('p-min').value*60; updatePomoDisp(); clearInterval(pInt); pInt=null; document.getElementById('p-start').innerText="开始专注"; }
     function togglePomo() {
@@ -355,9 +439,7 @@
         else { pInt=setInterval(()=>{ pTime--; updatePomoDisp(); if(pTime<=0){clearInterval(pInt); pomoCount++; save(); alert('专注完成！'); resetPomo();}},1000); document.getElementById('p-start').innerText="暂停"; }
     }
     function updatePomoDisp() { const m=Math.floor(pTime/60), s=pTime%60; document.getElementById('timer-val').innerText=`${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`; }
-    
     function toggleNoise(type) { alert(type + " 白噪音已开启 (功能保留)"); }
 </script>
 </body>
 </html>
-
