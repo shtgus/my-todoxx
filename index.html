@@ -18,7 +18,6 @@
             margin: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden;
         }
 
-        /* 同步状态条 */
         .sync-banner { 
             background: #334155; color: white; padding: 6px 24px; 
             display: flex; justify-content: space-between; align-items: center; 
@@ -40,12 +39,27 @@
             overflow: hidden; border: 1px solid var(--border);
         }
 
-        /* 顶部统计 */
+        /* 侧边栏样式 */
+        .nav-group { padding-bottom: 10px; border-bottom: 1px solid #F1F5F9; }
+        .nav-item { 
+            padding: 12px 20px; margin: 4px 16px; cursor: pointer; border-radius: 12px; 
+            font-size: 0.9rem; color: var(--text-sec); display: flex; align-items: center; gap: 12px;
+        }
+        .nav-item.active { background: var(--morandi-red-light); color: var(--morandi-red); font-weight: 600; }
+        
+        /* 灵感存档样式 */
+        .archive-section { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+        .archive-title { padding: 16px 24px 8px; font-size: 0.85rem; font-weight: bold; color: var(--text-main); opacity: 0.8; }
+        .archive-list { flex: 1; overflow-y: auto; padding: 0 16px 16px; }
+        .archive-item { 
+            background: #F8FAFC; border-radius: 10px; padding: 12px; margin-bottom: 8px; 
+            font-size: 0.75rem; color: var(--text-sec); line-height: 1.5; border-left: 3px solid var(--weread-blue);
+        }
+
         .stats-bar { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px; }
         .stat-card { background: #fff; padding: 18px; border-radius: 16px; text-align: center; border: 1px solid var(--border); }
         .stat-val { font-size: 1.4rem; font-weight: 700; color: var(--morandi-red); }
 
-        /* 输入区 */
         .input-area { background: white; padding: 16px; border-radius: 16px; border: 1px solid var(--border); margin-bottom: 24px; }
         .input-row { display: flex; gap: 12px; align-items: center; margin-bottom: 12px; }
         .input-row input[type="text"] { flex: 1; border: none; outline: none; font-size: 1rem; }
@@ -53,23 +67,12 @@
         .tag-pill { padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; cursor: pointer; border: 1px solid ; transition: 0.2s; background: #F1F5F9; margin-right: 5px; margin-bottom: 5px; display: inline-block; }
         .tag-pill.active { border-color: currentColor; background: white; font-weight: bold; }
 
-        /* 列表 */
         .todo-item { border-bottom: 1px solid #F1F5F9; }
         .todo-main { display: flex; align-items: center; padding: 16px; cursor: pointer; }
         .todo-main:hover { background: #FAFBFC; }
-        .todo-details { 
-            max-height: 0; overflow: hidden; transition: max-height 0.3s ease; 
-            background: #FBFCFD;
-        }
+        .todo-details { max-height: 0; overflow: hidden; transition: max-height 0.3s ease; background: #FBFCFD; }
         .todo-item.active .todo-details { max-height: 400px; padding: 16px; border-top: 1px solid #EEE; }
 
-        .nav-item { 
-            padding: 12px 20px; margin: 4px 16px; cursor: pointer; border-radius: 12px; 
-            font-size: 0.9rem; color: var(--text-sec); display: flex; align-items: center; gap: 12px;
-        }
-        .nav-item.active { background: var(--morandi-red-light); color: var(--morandi-red); font-weight: 600; }
-
-        /* 番茄钟 */
         .pomo-timer { text-align: center; padding: 24px; }
         .pomo-setting { margin-top: 10px; font-size: 0.75rem; color: var(--text-sec); }
         .pomo-setting input { width: 45px; border: 1px solid #EEE; border-radius: 4px; text-align: center; }
@@ -78,22 +81,13 @@
         button:hover { opacity: 0.9; }
         .btn-ghost { background: #F1F5F9; color: var(--text-sec); }
 
-        .cal-day { height: 36px; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; }
-        .cal-pop {
-            position: absolute; bottom: 110%; left: 50%; transform: translateX(-50%);
-            background: #334155; color: white; padding: 8px; border-radius: 8px;
-            width: 150px; font-size: 0.7rem; visibility: hidden; opacity: 0; z-index: 100; pointer-events: none;
-        }
-        .cal-day:hover .cal-pop { visibility: visible; opacity: 1; }
-
         .scroll { overflow-y: auto; scrollbar-width: none; }
         .scroll::-webkit-scrollbar { display: none; }
         textarea { width: 100%; border: 1px solid var(--border); border-radius: 8px; padding: 10px; font-size: 0.85rem; resize: none; outline: none; box-sizing: border-box; }
 
-        /* 灵感卡片特定样式 */
         .book-tag { font-size: 0.65rem; padding: 2px 6px; background: #E8F5E9; color: var(--douban-green); border-radius: 4px; margin-right: 4px; }
         .weread-tag { background: #E1F5FE; color: var(--weread-blue); }
-        #note-editor { display: none; margin-top: 10px; border-top: 1px dotted #CCC; padding-top: 10px; }
+        #note-editor { display: none; margin-top: 10px; }
     </style>
 </head>
 <body>
@@ -112,11 +106,16 @@
             <div id="live-time" style="font-size: 1.8rem; font-weight: 300; color: var(--morandi-red);"></div>
             <div id="live-date" style="color: var(--text-sec); font-size: 0.85rem;"></div>
         </div>
-        <div id="calendar-grid" style="display: grid; grid-template-columns: repeat(7, 1fr); padding: 15px; font-size: 0.75rem;"></div>
         <div class="nav-group">
             <div class="nav-item active" onclick="setFilter('today', this)">今日/逾期</div>
             <div class="nav-item" onclick="setFilter('week', this)">本周事项</div>
             <div class="nav-item" onclick="setFilter('all', this)">所有事项</div>
+        </div>
+        
+        <div class="archive-section">
+            <div class="archive-title">✨ 灵感存档</div>
+            <div id="archive-list" class="archive-list scroll">
+                </div>
         </div>
     </div>
 
@@ -151,10 +150,6 @@
                 <button id="p-start" onclick="togglePomo()" style="flex:1">开始专注</button>
                 <button onclick="resetPomo()" class="btn-ghost">重置</button>
             </div>
-            <div style="display: flex; gap: 5px; margin-top: 15px; justify-content: center;">
-                <button class="btn-ghost" style="font-size:0.65rem" onclick="toggleNoise('white')">🌊 潮汐</button>
-                <button class="btn-ghost" style="font-size:0.65rem" onclick="toggleNoise('pink')">🌲 森林</button>
-            </div>
         </div>
 
         <div class="panel scroll" style="flex: 1; padding: 20px;">
@@ -167,17 +162,15 @@
                 <div id="book-card" style="display: flex; flex-direction: column; gap: 12px;">
                     <div style="font-size: 1.1rem; font-weight: bold; color: var(--text-main);" id="book-title"></div>
                     <div style="font-size: 0.75rem; color: var(--text-sec);" id="book-author"></div>
-                    <div id="book-tags" style="display: flex; flex-wrap: wrap; gap: 4px;"></div>
                     <div id="book-desc" style="font-size: 0.8rem; line-height: 1.6; color: var(--text-main); background: #F8FAFC; padding: 12px; border-radius: 12px; border-left: 4px solid var(--weread-blue); min-height: 80px;"></div>
                 </div>
                 <button onclick="nextBook()" style="margin-top: 15px; width: 100%; font-size: 0.8rem; background: #E3F2FD; color: var(--weread-blue);">刷新灵感</button>
             </div>
 
             <div id="note-editor">
-                <input type="text" id="n-book" placeholder="书名" style="width:100%; margin-bottom:8px; padding:5px; border:1px solid #EEE; border-radius:5px; font-size:0.8rem;">
-                <textarea id="n-content" placeholder="粘贴微信读书摘录段落..." style="height:120px; font-size:0.8rem; margin-bottom:8px;"></textarea>
+                <textarea id="n-content" placeholder="在此粘贴段落..." style="height:160px; font-size:0.8rem; margin-bottom:12px;"></textarea>
                 <div style="display:flex; gap:10px;">
-                    <button onclick="saveNote()" style="flex:1; background:var(--weread-blue); font-size:0.75rem;">保存到云端</button>
+                    <button onclick="saveNote()" style="flex:1; background:var(--weread-blue); font-size:0.75rem;">保存</button>
                     <button onclick="toggleNoteEditor()" class="btn-ghost" style="flex:1; font-size:0.75rem;">取消</button>
                 </div>
             </div>
@@ -186,48 +179,37 @@
 </div>
 
 <script>
-    // --- 1. 云端配置 ---
     const SB_URL = 'https://jmkbmedqxcjefmnygyby.supabase.co'; 
     const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Impta2JtZWRxeGNqZWZtbnlneWJ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAwNjEyMTgsImV4cCI6MjA4NTYzNzIxOH0.x2BbeuxwPe8MEop7hzvZo0fZ9LRmNm3Jj5JgAA0MzXQ'; 
     let supabaseClient = null;
 
-    // --- 2. 核心数据 ---
     const bookLibrary = [
-        {title: "深度工作", author: "卡尔·纽波特", tags: ["方法论"], desc: "深度专注是碎片化时代唯一的竞争优势。"},
-        {title: "置身事内", author: "兰小欢", tags: ["经济"], desc: "读懂中国经济，先要读懂政府。"},
-        {title: "纳瓦尔宝典", author: "纳瓦尔", tags: ["成长"], desc: "把自己产品化。"}
+        {title: "深度工作", author: "卡尔·纽波特", desc: "深度专注是碎片化时代唯一的竞争优势。"},
+        {title: "纳瓦尔宝典", author: "纳瓦尔", desc: "把自己产品化。"}
     ];
 
-    let tags = JSON.parse(localStorage.getItem('tags_v88')) || [
-        {id: 't1', name: '工作', color: '#8E9EAB'},
-        {id: 't2', name: '生活', color: '#A3B18A'},
-        {id: 't3', name: '紧急', color: '#E08E8E'}
-    ];
+    let tags = JSON.parse(localStorage.getItem('tags_v88')) || [{id:'t1', name:'工作', color:'#8E9EAB'}];
     let tasks = JSON.parse(localStorage.getItem('tasks_v88')) || [];
     let myNotes = JSON.parse(localStorage.getItem('my_notes_v88')) || [];
     let pomoCount = parseInt(localStorage.getItem('pomo_v88')) || 0;
     let currentFilter = 'today';
     let selectedTagId = 't1';
 
-    // --- 3. 初始化与同步逻辑 ---
     window.onload = function() {
         updateClock(); setInterval(updateClock, 1000);
-        renderTags(); render(); nextBook();
+        renderTags(); render(); renderArchive(); nextBook();
     };
 
+    // --- 同步逻辑 ---
     async function initSupabase() {
         const code = document.getElementById('sync-code').value;
         if (!code || typeof supabase === 'undefined') return;
         try {
             supabaseClient = supabase.createClient(SB_URL, SB_KEY);
-            document.getElementById('sync-status').innerText = '同步中...';
-            const { data, error } = await supabaseClient.from('focus_data').select('*').eq('sync_code', code).single();
+            const { data } = await supabaseClient.from('focus_data').select('*').eq('sync_code', code).single();
             if (data) {
-                tasks = data.tasks || [];
-                tags = data.tags || tags;
-                pomoCount = data.pomo || 0;
-                myNotes = data.notes || myNotes;
-                saveLocally(); render(); renderTags();
+                tasks = data.tasks || []; myNotes = data.notes || []; pomoCount = data.pomo || 0;
+                saveLocally(); render(); renderArchive();
                 document.getElementById('sync-status').innerText = '云端连接成功';
             } else { saveCloud(); }
         } catch(e) { console.error(e); }
@@ -236,22 +218,28 @@
     async function saveCloud() {
         const code = document.getElementById('sync-code').value;
         if (!supabaseClient || !code) return;
-        await supabaseClient.from('focus_data').upsert({
-            sync_code: code, tasks, tags, pomo: pomoCount, notes: myNotes
-        });
-        document.getElementById('cloud-info').innerText = '云端已更新 ' + new Date().toLocaleTimeString();
+        await supabaseClient.from('focus_data').upsert({ sync_code: code, tasks, tags, pomo: pomoCount, notes: myNotes });
     }
 
     function saveLocally() {
-        localStorage.setItem('tags_v88', JSON.stringify(tags));
         localStorage.setItem('tasks_v88', JSON.stringify(tasks));
-        localStorage.setItem('pomo_v88', pomoCount);
         localStorage.setItem('my_notes_v88', JSON.stringify(myNotes));
+        localStorage.setItem('pomo_v88', pomoCount);
     }
 
-    function save() { saveLocally(); saveCloud(); render(); }
+    function save() { saveLocally(); saveCloud(); render(); renderArchive(); }
 
-    // --- 4. 业务逻辑 ---
+    // --- 灵感存档渲染 ---
+    function renderArchive() {
+        const list = document.getElementById('archive-list');
+        list.innerHTML = myNotes.slice().reverse().map(n => `
+            <div class="archive-item">
+                ${n.desc.substring(0, 100)}${n.desc.length > 100 ? '...' : ''}
+            </div>
+        `).join('') || '<div style="text-align:center; font-size:0.7rem; color:#999; margin-top:20px;">暂无存下来的灵感</div>';
+    }
+
+    // --- 业务逻辑 ---
     function updateClock() {
         const now = new Date();
         document.getElementById('live-time').innerText = now.toLocaleTimeString('zh-CN', {hour:'2-digit', minute:'2-digit'});
@@ -259,30 +247,13 @@
     }
 
     function renderTags() {
-        const container = document.getElementById('tag-selector');
-        container.innerHTML = tags.map(t => `
-            <span class="tag-pill ${selectedTagId === t.id ? 'active' : ''}" 
-                  style="color: ${t.color}" onclick="selectedTagId='${t.id}'; renderTags()">
-                ${t.name} <small onclick="event.stopPropagation(); deleteTag('${t.id}')" style="margin-left:5px; opacity:0.5">×</small>
-            </span>`).join('');
+        document.getElementById('tag-selector').innerHTML = tags.map(t => `<span class="tag-pill ${selectedTagId===t.id?'active':''}" style="color:${t.color}" onclick="selectedTagId='${t.id}'; renderTags()">${t.name}</span>`).join('');
     }
-
-    function createNewTag() {
-        const name = document.getElementById('new-tag-name').value;
-        const color = document.getElementById('new-tag-color').value;
-        if(!name) return;
-        tags.push({ id: 't' + Date.now(), name, color });
-        document.getElementById('new-tag-name').value = '';
-        save(); renderTags();
-    }
-
-    function deleteTag(id) { tags = tags.filter(t => t.id !== id); save(); renderTags(); }
 
     function addTask() {
         const input = document.getElementById('t-input');
-        const date = document.getElementById('t-date').value;
         if(!input.value.trim()) return;
-        tasks.push({ id: Date.now(), name: input.value, date: date || "", tagId: selectedTagId, desc: "", done: false });
+        tasks.push({ id: Date.now(), name: input.value, date: document.getElementById('t-date').value || "", tagId: selectedTagId, done: false });
         input.value = ""; save();
     }
 
@@ -290,81 +261,34 @@
         const container = document.getElementById('list-container');
         container.innerHTML = '';
         const todayStr = new Date().toISOString().split('T')[0];
-        const todayScope = tasks.filter(t => t.date === todayStr || (t.date < todayStr && !t.done));
-        document.getElementById('stat-progress').innerText = (todayScope.length ? Math.round(todayScope.filter(x=>x.done).length/todayScope.length*100) : 0) + "%";
-        document.getElementById('stat-pending').innerText = todayScope.filter(x=>!x.done).length;
-        document.getElementById('stat-focus').innerText = pomoCount;
-
+        
         const filtered = tasks.filter(t => {
             if (currentFilter === 'today') return t.date === todayStr || (t.date < todayStr && !t.done);
-            if (currentFilter === 'week') {
-                if(!t.date) return false;
-                const diff = (new Date(t.date) - new Date()) / 86400000;
-                return diff >= -1 && diff <= 7;
-            }
             return true;
         });
 
         filtered.forEach(t => {
-            const tag = tags.find(x => x.id === t.tagId) || {color:'#CCC'};
-            const isOverdue = t.date && t.date < todayStr && !t.done;
             const item = document.createElement('div');
             item.className = 'todo-item';
-            item.innerHTML = `
-                <div class="todo-main" onclick="this.parentElement.classList.toggle('active')">
-                    <input type="checkbox" ${t.done?'checked':''} onclick="event.stopPropagation(); toggleDone(${t.id})">
-                    <div style="flex:1; margin-left:12px; border-left:3px solid ${tag.color}; padding-left:10px; ${t.done?'opacity:0.4;text-decoration:line-through':''}">
-                        <div style="font-size:0.95rem;">${t.name} ${isOverdue?'<span style="color:red; font-size:0.7rem;">[逾期]</span>':''}</div>
-                        <small style="color:${isOverdue?'red':'var(--text-sec)'}">${t.date || '随时'}</small>
-                    </div>
-                </div>
-                <div class="todo-details">
-                    <textarea placeholder="添加备注描述..." onblur="updateTask(${t.id}, 'desc', this.value)">${t.desc || ''}</textarea>
-                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-top:10px;">
-                        <div><small>时间：</small><input type="date" value="${t.date}" onchange="updateTask(${t.id}, 'date', this.value)" style="width:100%"></div>
-                        <div><small>标签：</small><select onchange="updateTask(${t.id}, 'tagId', this.value)" style="width:100%">${tags.map(to => `<option value="${to.id}" ${to.id===t.tagId?'selected':''}>${to.name}</option>`).join('')}</select></div>
-                    </div>
-                    <button onclick="delTask(${t.id})" style="background:#FEE2E2; color:red; margin-top:10px; width:100%; font-size:0.7rem;">删除此任务</button>
-                </div>`;
+            item.innerHTML = `<div class="todo-main"><input type="checkbox" ${t.done?'checked':''}> <div style="margin-left:12px;">${t.name}</div></div>`;
             container.appendChild(item);
         });
-        renderCalendar();
+        
+        document.getElementById('stat-pending').innerText = tasks.filter(x=>!x.done).length;
+        document.getElementById('stat-focus').innerText = pomoCount;
     }
 
-    function renderCalendar() {
-        const grid = document.getElementById('calendar-grid'); grid.innerHTML = '';
-        const now = new Date();
-        const days = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-        for(let i=1; i<=days; i++) {
-            const dStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(i).padStart(2,'0')}`;
-            const dayTasks = tasks.filter(t => t.date === dStr);
-            grid.innerHTML += `<div class="cal-day">
-                <span style="${i===now.getDate()?'color:var(--morandi-red);font-weight:bold':''}">${i}</span>
-                <div class="cal-pop">${dayTasks.length ? dayTasks.map(t=>'• '+t.name).join('<br>') : '无安排'}</div>
-                ${dayTasks.length ? `<div style="width:3px; height:3px; background:var(--morandi-red); border-radius:50%; margin-top:2px;"></div>` : ''}
-            </div>`;
-        }
-    }
-
-    // --- 5. 交互与笔记库功能 ---
-    function updateTask(id, k, v) { const t=tasks.find(x=>x.id===id); if(t) t[k]=v; save(); }
-    function toggleDone(id) { const t=tasks.find(x=>x.id===id); t.done=!t.done; save(); }
-    function delTask(id) { tasks=tasks.filter(x=>x.id!==id); save(); }
-    function setFilter(f, el) { currentFilter=f; document.querySelectorAll('.nav-item').forEach(x=>x.classList.remove('active')); el.classList.add('active'); render(); }
-
+    // --- 笔记交互 ---
     function toggleNoteEditor() {
-        const disp = document.getElementById('note-display');
-        const edit = document.getElementById('note-editor');
-        if(edit.style.display === 'block') { edit.style.display = 'none'; disp.style.display = 'block'; }
-        else { edit.style.display = 'block'; disp.style.display = 'none'; }
+        const disp = document.getElementById('note-display'), edit = document.getElementById('note-editor');
+        edit.style.display = (edit.style.display === 'block') ? 'none' : 'block';
+        disp.style.display = (edit.style.display === 'block') ? 'none' : 'block';
     }
 
     function saveNote() {
-        const b = document.getElementById('n-book').value;
         const c = document.getElementById('n-content').value;
         if(!c) return;
-        myNotes.push({ title: b || "微信读书摘录", desc: c, author: "我的笔记", tags: ["WeRead"], isPrivate: true });
-        document.getElementById('n-book').value = '';
+        myNotes.push({ title: "我的摘录", desc: c, author: "Me", isPrivate: true });
         document.getElementById('n-content').value = '';
         toggleNoteEditor();
         save();
@@ -372,25 +296,23 @@
     }
 
     function nextBook() {
-        // 混合库逻辑：私人笔记有 70% 概率出现
-        const pool = (myNotes.length > 0 && Math.random() < 0.7) ? myNotes : bookLibrary;
+        const pool = (myNotes.length > 0 && Math.random() < 0.6) ? myNotes : bookLibrary;
         const b = pool[Math.floor(Math.random() * pool.length)];
-        
-        document.getElementById('book-title').innerText = b.title;
-        document.getElementById('book-author').innerText = b.author;
+        document.getElementById('book-title').innerText = b.title || "灵感摘录";
+        document.getElementById('book-author').innerText = b.author || "佚名";
         document.getElementById('book-desc').innerText = b.desc;
-        document.getElementById('note-type-label').innerText = b.isPrivate ? "📝 我的读书笔记" : "📖 推荐摘录";
-        document.getElementById('book-tags').innerHTML = b.tags.map(t => `<span class="book-tag ${b.isPrivate?'weread-tag':''}">${t}</span>`).join('');
     }
 
+    function setFilter(f, el) { currentFilter=f; document.querySelectorAll('.nav-item').forEach(x=>x.classList.remove('active')); el.classList.add('active'); render(); }
+    
+    // --- 番茄钟基础逻辑 ---
     let pTime=1500, pInt=null;
-    function resetPomo() { pTime=document.getElementById('p-min').value*60; updatePomoDisp(); clearInterval(pInt); pInt=null; document.getElementById('p-start').innerText="开始专注"; }
+    function resetPomo() { pTime=document.getElementById('p-min').value*60; updatePomoDisp(); clearInterval(pInt); pInt=null; }
     function togglePomo() {
-        if(pInt) { clearInterval(pInt); pInt=null; document.getElementById('p-start').innerText="继续"; }
-        else { pInt=setInterval(()=>{ pTime--; updatePomoDisp(); if(pTime<=0){clearInterval(pInt); pomoCount++; save(); alert('专注完成！'); resetPomo();}},1000); document.getElementById('p-start').innerText="暂停"; }
+        if(pInt) { clearInterval(pInt); pInt=null; }
+        else { pInt=setInterval(()=>{ pTime--; updatePomoDisp(); if(pTime<=0){pomoCount++; save(); resetPomo();}},1000); }
     }
     function updatePomoDisp() { const m=Math.floor(pTime/60), s=pTime%60; document.getElementById('timer-val').innerText=`${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`; }
-    function toggleNoise(type) { alert(type + " 白噪音已开启"); }
 </script>
 </body>
 </html>
