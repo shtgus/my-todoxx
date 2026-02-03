@@ -9,7 +9,7 @@
             --bg: #F5F7FA; --card: #FFFFFF; --text-main: #334155; --text-sec: #64748B;
             --morandi-red: #E08E8E; --morandi-red-light: #FDF2F2; --border: #E5E7EB;
             --shadow: 0 4px 20px rgba(0,0,0,0.04); --radius: 20px;
-            --douban-green: #00B51D;
+            --douban-green: #00B51D; --weread-blue: #1B88EE;
         }
 
         body {
@@ -90,8 +90,10 @@
         .scroll::-webkit-scrollbar { display: none; }
         textarea { width: 100%; border: 1px solid var(--border); border-radius: 8px; padding: 10px; font-size: 0.85rem; resize: none; outline: none; box-sizing: border-box; }
 
-        /* 推书卡片特定样式 */
+        /* 灵感卡片特定样式 */
         .book-tag { font-size: 0.65rem; padding: 2px 6px; background: #E8F5E9; color: var(--douban-green); border-radius: 4px; margin-right: 4px; }
+        .weread-tag { background: #E1F5FE; color: var(--weread-blue); }
+        #note-editor { display: none; margin-top: 10px; border-top: 1px dotted #CCC; padding-top: 10px; }
     </style>
 </head>
 <body>
@@ -156,17 +158,29 @@
         </div>
 
         <div class="panel scroll" style="flex: 1; padding: 20px;">
-            <div style="font-weight: bold; color: var(--douban-green); margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center;">
-                <span>📖 豆瓣每日推书</span>
-                <span id="book-score" style="color:#FFAC2D; font-size: 0.9rem;"></span>
+            <div style="font-weight: bold; color: var(--weread-blue); margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center;">
+                <span id="note-type-label">📖 灵感摘录</span>
+                <button onclick="toggleNoteEditor()" style="padding: 2px 8px; font-size: 0.65rem; background: var(--weread-blue);">+ 录入笔记</button>
             </div>
-            <div id="book-card" style="display: flex; flex-direction: column; gap: 12px;">
-                <div style="font-size: 1.1rem; font-weight: bold; color: var(--text-main);" id="book-title"></div>
-                <div style="font-size: 0.75rem; color: var(--text-sec);" id="book-author"></div>
-                <div id="book-tags" style="display: flex; flex-wrap: wrap; gap: 4px;"></div>
-                <div id="book-desc" style="font-size: 0.8rem; line-height: 1.6; color: var(--text-main); background: #F8FAFC; padding: 12px; border-radius: 12px; border-left: 4px solid var(--douban-green);"></div>
+            
+            <div id="note-display">
+                <div id="book-card" style="display: flex; flex-direction: column; gap: 12px;">
+                    <div style="font-size: 1.1rem; font-weight: bold; color: var(--text-main);" id="book-title"></div>
+                    <div style="font-size: 0.75rem; color: var(--text-sec);" id="book-author"></div>
+                    <div id="book-tags" style="display: flex; flex-wrap: wrap; gap: 4px;"></div>
+                    <div id="book-desc" style="font-size: 0.8rem; line-height: 1.6; color: var(--text-main); background: #F8FAFC; padding: 12px; border-radius: 12px; border-left: 4px solid var(--weread-blue); min-height: 80px;"></div>
+                </div>
+                <button onclick="nextBook()" style="margin-top: 15px; width: 100%; font-size: 0.8rem; background: #E3F2FD; color: var(--weread-blue);">刷新灵感</button>
             </div>
-            <button onclick="nextBook()" style="margin-top: 15px; width: 100%; font-size: 0.8rem; background: #E8F5E9; color: var(--douban-green);">换一本读读</button>
+
+            <div id="note-editor">
+                <input type="text" id="n-book" placeholder="书名" style="width:100%; margin-bottom:8px; padding:5px; border:1px solid #EEE; border-radius:5px; font-size:0.8rem;">
+                <textarea id="n-content" placeholder="粘贴微信读书摘录段落..." style="height:120px; font-size:0.8rem; margin-bottom:8px;"></textarea>
+                <div style="display:flex; gap:10px;">
+                    <button onclick="saveNote()" style="flex:1; background:var(--weread-blue); font-size:0.75rem;">保存到云端</button>
+                    <button onclick="toggleNoteEditor()" class="btn-ghost" style="flex:1; font-size:0.75rem;">取消</button>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -179,13 +193,9 @@
 
     // --- 2. 核心数据 ---
     const bookLibrary = [
-        {title: "置身事内", author: "兰小欢", score: "9.1", tags: ["经济", "中国社会"], desc: "读懂中国经济的必读书目，将复杂的经济机制讲得通俗易懂，适合深度专注后换个思维。"},
-        {title: "纳瓦尔宝典", author: "埃里克·乔根森", score: "8.4", tags: ["个人成长", "财富"], desc: "关于如何通过专注和杠杆原理获得财富与自由的指南，与专注清单的使用初衷完美匹配。"},
-        {title: "小而美", author: "沙希尔·拉维吉亚", score: "8.1", tags: ["创业", "工作观"], desc: "重新定义成功，在这个快节奏时代，如何有尊严、有专注力地经营自己的事业。"},
-        {title: "额尔古纳河右岸", author: "迟子建", score: "9.0", tags: ["文学", "自然"], desc: "充满灵性的文字，带你进入森林与驯鹿的世界，是极好的心流切换工具。"},
-        {title: "深度工作", author: "卡尔·纽波特", score: "8.2", tags: ["方法论", "专注"], desc: "解释了为什么在碎片化时代，深度专注是唯一的竞争优势，是本产品的理论灵魂。"},
-        {title: "人类简史", author: "尤瓦尔·赫拉利", score: "9.1", tags: ["历史", "宏大叙事"], desc: "从极大的尺度审视人类，让你在忙碌的小事中抬起头，看看星空和远方。"},
-        {title: "被讨厌的勇气", author: "岸见一郎", score: "8.6", tags: ["心理", "哲学"], desc: "阿德勒心理学通俗读本，帮你卸下人际关系的负担，把能量集中在当下要做的事。"}
+        {title: "深度工作", author: "卡尔·纽波特", tags: ["方法论"], desc: "深度专注是碎片化时代唯一的竞争优势。"},
+        {title: "置身事内", author: "兰小欢", tags: ["经济"], desc: "读懂中国经济，先要读懂政府。"},
+        {title: "纳瓦尔宝典", author: "纳瓦尔", tags: ["成长"], desc: "把自己产品化。"}
     ];
 
     let tags = JSON.parse(localStorage.getItem('tags_v88')) || [
@@ -194,17 +204,15 @@
         {id: 't3', name: '紧急', color: '#E08E8E'}
     ];
     let tasks = JSON.parse(localStorage.getItem('tasks_v88')) || [];
+    let myNotes = JSON.parse(localStorage.getItem('my_notes_v88')) || [];
     let pomoCount = parseInt(localStorage.getItem('pomo_v88')) || 0;
     let currentFilter = 'today';
     let selectedTagId = 't1';
 
     // --- 3. 初始化与同步逻辑 ---
     window.onload = function() {
-        updateClock();
-        setInterval(updateClock, 1000);
-        renderTags();
-        render();
-        nextBook();
+        updateClock(); setInterval(updateClock, 1000);
+        renderTags(); render(); nextBook();
     };
 
     async function initSupabase() {
@@ -218,12 +226,10 @@
                 tasks = data.tasks || [];
                 tags = data.tags || tags;
                 pomoCount = data.pomo || 0;
+                myNotes = data.notes || myNotes;
                 saveLocally(); render(); renderTags();
                 document.getElementById('sync-status').innerText = '云端连接成功';
-            } else {
-                document.getElementById('sync-status').innerText = '新口令就绪';
-                saveCloud();
-            }
+            } else { saveCloud(); }
         } catch(e) { console.error(e); }
     }
 
@@ -231,15 +237,16 @@
         const code = document.getElementById('sync-code').value;
         if (!supabaseClient || !code) return;
         await supabaseClient.from('focus_data').upsert({
-            sync_code: code, tasks, tags, pomo: pomoCount
+            sync_code: code, tasks, tags, pomo: pomoCount, notes: myNotes
         });
-        document.getElementById('cloud-info').innerText = '云端已更新 ' + new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+        document.getElementById('cloud-info').innerText = '云端已更新 ' + new Date().toLocaleTimeString();
     }
 
     function saveLocally() {
         localStorage.setItem('tags_v88', JSON.stringify(tags));
         localStorage.setItem('tasks_v88', JSON.stringify(tasks));
         localStorage.setItem('pomo_v88', pomoCount);
+        localStorage.setItem('my_notes_v88', JSON.stringify(myNotes));
     }
 
     function save() { saveLocally(); saveCloud(); render(); }
@@ -339,19 +346,41 @@
         }
     }
 
-    // --- 5. 交互与推书功能 ---
+    // --- 5. 交互与笔记库功能 ---
     function updateTask(id, k, v) { const t=tasks.find(x=>x.id===id); if(t) t[k]=v; save(); }
     function toggleDone(id) { const t=tasks.find(x=>x.id===id); t.done=!t.done; save(); }
     function delTask(id) { tasks=tasks.filter(x=>x.id!==id); save(); }
     function setFilter(f, el) { currentFilter=f; document.querySelectorAll('.nav-item').forEach(x=>x.classList.remove('active')); el.classList.add('active'); render(); }
 
+    function toggleNoteEditor() {
+        const disp = document.getElementById('note-display');
+        const edit = document.getElementById('note-editor');
+        if(edit.style.display === 'block') { edit.style.display = 'none'; disp.style.display = 'block'; }
+        else { edit.style.display = 'block'; disp.style.display = 'none'; }
+    }
+
+    function saveNote() {
+        const b = document.getElementById('n-book').value;
+        const c = document.getElementById('n-content').value;
+        if(!c) return;
+        myNotes.push({ title: b || "微信读书摘录", desc: c, author: "我的笔记", tags: ["WeRead"], isPrivate: true });
+        document.getElementById('n-book').value = '';
+        document.getElementById('n-content').value = '';
+        toggleNoteEditor();
+        save();
+        nextBook();
+    }
+
     function nextBook() {
-        const b = bookLibrary[Math.floor(Math.random() * bookLibrary.length)];
+        // 混合库逻辑：私人笔记有 70% 概率出现
+        const pool = (myNotes.length > 0 && Math.random() < 0.7) ? myNotes : bookLibrary;
+        const b = pool[Math.floor(Math.random() * pool.length)];
+        
         document.getElementById('book-title').innerText = b.title;
-        document.getElementById('book-author').innerText = "作者：" + b.author;
-        document.getElementById('book-score').innerText = "★ " + b.score;
+        document.getElementById('book-author').innerText = b.author;
         document.getElementById('book-desc').innerText = b.desc;
-        document.getElementById('book-tags').innerHTML = b.tags.map(t => `<span class="book-tag">${t}</span>`).join('');
+        document.getElementById('note-type-label').innerText = b.isPrivate ? "📝 我的读书笔记" : "📖 推荐摘录";
+        document.getElementById('book-tags').innerHTML = b.tags.map(t => `<span class="book-tag ${b.isPrivate?'weread-tag':''}">${t}</span>`).join('');
     }
 
     let pTime=1500, pInt=null;
@@ -361,7 +390,7 @@
         else { pInt=setInterval(()=>{ pTime--; updatePomoDisp(); if(pTime<=0){clearInterval(pInt); pomoCount++; save(); alert('专注完成！'); resetPomo();}},1000); document.getElementById('p-start').innerText="暂停"; }
     }
     function updatePomoDisp() { const m=Math.floor(pTime/60), s=pTime%60; document.getElementById('timer-val').innerText=`${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`; }
-    function toggleNoise(type) { alert(type + " 白噪音已开启 (功能保留)"); }
+    function toggleNoise(type) { alert(type + " 白噪音已开启"); }
 </script>
 </body>
 </html>
