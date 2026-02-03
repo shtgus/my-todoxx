@@ -160,6 +160,123 @@
 </div>
 
 <script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+/* ================= Supabase 初始化 ================= */
+const SUPABASE_URL = "https://jmkbmedqxcjefmnygyby.supabase.co"
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Impta2JtZWRxeGNqZWZtbnlneWJ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAwNjEyMTgsImV4cCI6MjA4NTYzNzIxOH0.x2BbeuxwPe8MEop7hzvZo0fZ9LRmNm3Jj5JgAA0MzXQ"
+
+const supabase = supabaseJs.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+
+/* ================= 登录（只需一次） ================= */
+async function ensureLogin() {
+  const { data } = await supabase.auth.getSession()
+  if (data.session) return data.session.user
+
+  const email = prompt("请输入邮箱，用于同步 Todo（仅第一次需要）")
+  if (!email) return null
+
+  await supabase.auth.signInWithOtp({ email })
+  alert("登录链接已发送到邮箱，点开后刷新页面即可")
+  return null
+}
+
+/* ================= 原有本地数据（保留） ================= */
+let tags = JSON.parse(localStorage.getItem('tags_v6')) || [
+  {id: 't1', name: '工作', color: '#8E9EAB'},
+  {id: 't2', name: '生活', color: '#A3B18A'},
+  {id: 't3', name: '紧急', color: '#E08E8E'}
+]
+
+let tasks = []
+let pomoCount = parseInt(localStorage.getItem('pomo_v6')) || 0
+let currentFilter = 'today'
+let selectedTagId = 't1'
+
+/* ================= 云端加载 ================= */
+async function loadTasksFromCloud() {
+  const user = await ensureLogin()
+  if (!user) return
+
+  const { data } = await supabase
+    .from('tasks')
+    .select('*')
+    .eq('user_id', user.id)
+    .order('created_at')
+
+  tasks = data || []
+  localStorage.setItem('tasks_v6', JSON.stringify(tasks))
+  render()
+}
+
+/* ================= 云端写入 ================= */
+async function addTask() {
+  const input = document.getElementById('t-input')
+  const date = document.getElementById('t-date').value
+  if (!input.value.trim()) return
+
+  const user = await ensureLogin()
+  if (!user) return
+
+  const { data } = await supabase
+    .from('tasks')
+    .insert([{
+      user_id: user.id,
+      name: input.value,
+      date: date || null,
+      tag_id: selectedTagId,
+      desc: "",
+      done: false
+    }])
+    .select()
+
+  tasks.push(data[0])
+  saveLocal()
+  input.value = ""
+}
+
+async function updateTask(id, key, val) {
+  const t = tasks.find(x => x.id === id)
+  if (!t) return
+  t[key] = val
+
+  await supabase.from('tasks').update({ [key]: val }).eq('id', id)
+  saveLocal()
+}
+
+async function toggleDone(id) {
+  const t = tasks.find(x => x.id === id)
+  t.done = !t.done
+
+  await supabase.from('tasks').update({ done: t.done }).eq('id', id)
+  saveLocal()
+}
+
+async function delTask(id) {
+  tasks = tasks.filter(x => x.id !== id)
+  await supabase.from('tasks').delete().eq('id', id)
+  saveLocal()
+}
+
+async function postpone(id) {
+  const today = new Date().toISOString().split('T')[0]
+  await updateTask(id, 'date', today)
+}
+
+/* ================= 本地缓存 ================= */
+function saveLocal() {
+  localStorage.setItem('tasks_v6', JSON.stringify(tasks))
+  render()
+}
+
+/* ================= 初始化 ================= */
+async function init() {
+  updateClock()
+  renderTags()
+  nextSoup()
+  setInterval(updateClock, 1000)
+  await loadTasksFromCloud()
+}
     // --- 50条海龟汤精选库 (展示部分逻辑，库已扩充) ---
     const soupLibrary = [
         {f: "男子走进餐馆点了一碗海龟汤。喝了一口后，他走出餐馆自杀了。", b: "海难中同伴骗他喝的是海龟汤，其实是他妻子的肉。真的汤让他意识到真相。"},
@@ -353,4 +470,3 @@
 </script>
 </body>
 </html>
-
