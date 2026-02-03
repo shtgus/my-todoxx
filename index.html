@@ -47,14 +47,24 @@
         }
         .nav-item.active { background: var(--morandi-red-light); color: var(--morandi-red); font-weight: 600; }
         
-        /* 灵感存档样式 */
+        /* 灵感存档样式优化 - Flomo Tree */
         .archive-section { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
         .archive-title { padding: 16px 24px 8px; font-size: 0.85rem; font-weight: bold; color: var(--text-main); opacity: 0.8; }
-        .archive-list { flex: 1; overflow-y: auto; padding: 0 16px 16px; }
-        .archive-item { 
-            background: #F8FAFC; border-radius: 10px; padding: 12px; margin-bottom: 8px; 
-            font-size: 0.75rem; color: var(--text-sec); line-height: 1.5; border-left: 3px solid var(--weread-blue);
+        .tag-tree { flex: 1; overflow-y: auto; padding: 0 10px; }
+        .tag-node { font-size: 0.8rem; padding: 6px 15px; cursor: pointer; border-radius: 8px; color: var(--text-sec); margin: 2px 8px; transition: 0.2s; }
+        .tag-node:hover { background: #F1F5F9; color: var(--weread-blue); }
+        .tag-node.active { color: var(--weread-blue); font-weight: bold; background: #E3F2FD; }
+        .sub-tag { padding-left: 30px; font-size: 0.75rem; opacity: 0.8; }
+
+        /* 灵感内容卡片样式 */
+        .memo-card { 
+            background: #F8FAFC; border-radius: 12px; padding: 16px; margin-bottom: 12px; 
+            font-size: 0.85rem; line-height: 1.6; position: relative; border: 1px solid transparent; transition: 0.3s;
         }
+        .memo-card:hover { border-color: #E2E8F0; background: #FFF; box-shadow: var(--shadow); }
+        .memo-card .del-btn { position: absolute; right: 12px; top: 12px; opacity: 0; cursor: pointer; color: #CBD5E1; font-size: 1.2rem; }
+        .memo-card:hover .del-btn { opacity: 1; }
+        .memo-tag-link { color: var(--weread-blue); margin-right: 5px; text-decoration: none; font-weight: 500; }
 
         .stats-bar { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px; }
         .stat-card { background: #fff; padding: 18px; border-radius: 16px; text-align: center; border: 1px solid var(--border); }
@@ -70,8 +80,6 @@
         .todo-item { border-bottom: 1px solid #F1F5F9; }
         .todo-main { display: flex; align-items: center; padding: 16px; cursor: pointer; }
         .todo-main:hover { background: #FAFBFC; }
-        .todo-details { max-height: 0; overflow: hidden; transition: max-height 0.3s ease; background: #FBFCFD; }
-        .todo-item.active .todo-details { max-height: 400px; padding: 16px; border-top: 1px solid #EEE; }
 
         .pomo-timer { text-align: center; padding: 24px; }
         .pomo-setting { margin-top: 10px; font-size: 0.75rem; color: var(--text-sec); }
@@ -83,10 +91,8 @@
 
         .scroll { overflow-y: auto; scrollbar-width: none; }
         .scroll::-webkit-scrollbar { display: none; }
-        textarea { width: 100%; border: 1px solid var(--border); border-radius: 8px; padding: 10px; font-size: 0.85rem; resize: none; outline: none; box-sizing: border-box; }
+        textarea { width: 100%; border: 1px solid var(--border); border-radius: 12px; padding: 12px; font-size: 0.85rem; resize: none; outline: none; box-sizing: border-box; }
 
-        .book-tag { font-size: 0.65rem; padding: 2px 6px; background: #E8F5E9; color: var(--douban-green); border-radius: 4px; margin-right: 4px; }
-        .weread-tag { background: #E1F5FE; color: var(--weread-blue); }
         #note-editor { display: none; margin-top: 10px; }
     </style>
 </head>
@@ -107,14 +113,13 @@
             <div id="live-date" style="color: var(--text-sec); font-size: 0.85rem;"></div>
         </div>
         <div class="nav-group">
-            <div class="nav-item active" onclick="setFilter('today', this)">今日/逾期</div>
-            <div class="nav-item" onclick="setFilter('week', this)">本周事项</div>
-            <div class="nav-item" onclick="setFilter('all', this)">所有事项</div>
+            <div class="nav-item active" id="nav-today" onclick="setFilter('today', this)">今日/逾期</div>
+            <div class="nav-item" id="nav-all" onclick="setFilter('all', this)">所有事项</div>
         </div>
         
         <div class="archive-section">
-            <div class="archive-title">✨ 灵感存档</div>
-            <div id="archive-list" class="archive-list scroll">
+            <div class="archive-title">✨ 灵感存档 (flomo)</div>
+            <div id="tag-tree-container" class="tag-tree scroll">
                 </div>
         </div>
     </div>
@@ -126,7 +131,7 @@
             <div class="stat-card"><div id="stat-focus" class="stat-val">0</div><div style="font-size:0.7rem; color:#94A3B8;">已获番茄</div></div>
         </div>
 
-        <div class="input-area">
+        <div class="input-area" id="main-input-area">
             <div class="input-row">
                 <input type="text" id="t-input" placeholder="输入任务名称，按回车创建..." onkeydown="if(event.keyCode==13) addTask()">
                 <input type="date" id="t-date" style="border:none; color:var(--text-sec); font-size:0.8rem;">
@@ -139,7 +144,7 @@
             </div>
         </div>
 
-        <div class="panel scroll" style="flex: 1;" id="list-container"></div>
+        <div class="panel scroll" style="flex: 1; padding: 20px;" id="list-container"></div>
     </div>
 
     <div style="display: flex; flex-direction: column; gap: 24px;">
@@ -154,7 +159,7 @@
 
         <div class="panel scroll" style="flex: 1; padding: 20px;">
             <div style="font-weight: bold; color: var(--weread-blue); margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center;">
-                <span id="note-type-label">📖 灵感摘录</span>
+                <span id="note-type-label">📖 灵感回顾</span>
                 <button onclick="toggleNoteEditor()" style="padding: 2px 8px; font-size: 0.65rem; background: var(--weread-blue);">+ 录入笔记</button>
             </div>
             
@@ -164,13 +169,13 @@
                     <div style="font-size: 0.75rem; color: var(--text-sec);" id="book-author"></div>
                     <div id="book-desc" style="font-size: 0.8rem; line-height: 1.6; color: var(--text-main); background: #F8FAFC; padding: 12px; border-radius: 12px; border-left: 4px solid var(--weread-blue); min-height: 80px;"></div>
                 </div>
-                <button onclick="nextBook()" style="margin-top: 15px; width: 100%; font-size: 0.8rem; background: #E3F2FD; color: var(--weread-blue);">刷新灵感</button>
+                <button onclick="nextBook()" style="margin-top: 15px; width: 100%; font-size: 0.8rem; background: #E3F2FD; color: var(--weread-blue);">换一个</button>
             </div>
 
             <div id="note-editor">
-                <textarea id="n-content" placeholder="在此粘贴段落..." style="height:160px; font-size:0.8rem; margin-bottom:12px;"></textarea>
+                <textarea id="n-content" placeholder="记录想法，使用 #标签 或 #父/子 自动分类..." style="height:160px; font-size:0.8rem; margin-bottom:12px;"></textarea>
                 <div style="display:flex; gap:10px;">
-                    <button onclick="saveNote()" style="flex:1; background:var(--weread-blue); font-size:0.75rem;">保存</button>
+                    <button onclick="saveNote()" style="flex:1; background:var(--weread-blue); font-size:0.75rem;">保存存档</button>
                     <button onclick="toggleNoteEditor()" class="btn-ghost" style="flex:1; font-size:0.75rem;">取消</button>
                 </div>
             </div>
@@ -192,12 +197,13 @@
     let tasks = JSON.parse(localStorage.getItem('tasks_v88')) || [];
     let myNotes = JSON.parse(localStorage.getItem('my_notes_v88')) || [];
     let pomoCount = parseInt(localStorage.getItem('pomo_v88')) || 0;
-    let currentFilter = 'today';
+    
+    let currentFilter = 'today'; // 'today', 'all', or a specific tag name
     let selectedTagId = 't1';
 
     window.onload = function() {
         updateClock(); setInterval(updateClock, 1000);
-        renderTags(); render(); renderArchive(); nextBook();
+        renderTags(); render(); renderTagTree(); nextBook();
     };
 
     // --- 同步逻辑 ---
@@ -209,7 +215,7 @@
             const { data } = await supabaseClient.from('focus_data').select('*').eq('sync_code', code).single();
             if (data) {
                 tasks = data.tasks || []; myNotes = data.notes || []; pomoCount = data.pomo || 0;
-                saveLocally(); render(); renderArchive();
+                saveLocally(); render(); renderTagTree();
                 document.getElementById('sync-status').innerText = '云端连接成功';
             } else { saveCloud(); }
         } catch(e) { console.error(e); }
@@ -225,18 +231,105 @@
         localStorage.setItem('tasks_v88', JSON.stringify(tasks));
         localStorage.setItem('my_notes_v88', JSON.stringify(myNotes));
         localStorage.setItem('pomo_v88', pomoCount);
+        localStorage.setItem('tags_v88', JSON.stringify(tags));
     }
 
-    function save() { saveLocally(); saveCloud(); render(); renderArchive(); }
+    function save() { saveLocally(); saveCloud(); render(); renderTagTree(); }
 
-    // --- 灵感存档渲染 ---
-    function renderArchive() {
-        const list = document.getElementById('archive-list');
-        list.innerHTML = myNotes.slice().reverse().map(n => `
-            <div class="archive-item">
-                ${n.desc.substring(0, 100)}${n.desc.length > 100 ? '...' : ''}
-            </div>
-        `).join('') || '<div style="text-align:center; font-size:0.7rem; color:#999; margin-top:20px;">暂无存下来的灵感</div>';
+    // --- Flomo 标签解析器 ---
+    function parseTags(text) {
+        const regex = /#([^\s#]+)/g;
+        const tagsFound = [];
+        let match;
+        while ((match = regex.exec(text)) !== null) {
+            tagsFound.push(match[1]);
+        }
+        return tagsFound;
+    }
+
+    // --- 渲染左侧标签树 ---
+    function renderTagTree() {
+        const container = document.getElementById('tag-tree-container');
+        const tagMap = {}; 
+
+        myNotes.forEach(memo => {
+            const mTags = memo.parsedTags || [];
+            mTags.forEach(tag => {
+                if (tag.includes('/')) {
+                    const [parent, child] = tag.split('/');
+                    if (!tagMap[parent]) tagMap[parent] = new Set();
+                    tagMap[parent].add(child);
+                } else {
+                    if (!tagMap[tag]) tagMap[tag] = new Set();
+                }
+            });
+        });
+
+        let html = '';
+        Object.keys(tagMap).sort().forEach(parent => {
+            const isActive = currentFilter === parent;
+            html += `<div class="tag-node ${isActive?'active':''}" onclick="setFilter('${parent}', this, true)"># ${parent}</div>`;
+            tagMap[parent].forEach(child => {
+                const fullTag = `${parent}/${child}`;
+                const isSubActive = currentFilter === fullTag;
+                html += `<div class="tag-node sub-tag ${isSubActive?'active':''}" onclick="setFilter('${fullTag}', this, true)">└ ${child}</div>`;
+            });
+        });
+
+        container.innerHTML = html || '<div style="text-align:center; font-size:0.7rem; color:#999; margin-top:10px;">输入#标签自动分类</div>';
+    }
+
+    // --- 主渲染逻辑 ---
+    function render() {
+        const container = document.getElementById('list-container');
+        container.innerHTML = '';
+        const inputArea = document.getElementById('main-input-area');
+        
+        // 如果当前是标签筛选，渲染灵感卡片列表
+        if (currentFilter !== 'today' && currentFilter !== 'all' && currentFilter !== 'week') {
+            inputArea.style.display = 'none'; // 灵感浏览模式隐藏任务输入
+            
+            const filteredMemos = myNotes.filter(m => 
+                m.parsedTags && m.parsedTags.some(t => t === currentFilter || t.startsWith(currentFilter + '/'))
+            );
+
+            container.innerHTML = `<h3 style="margin:0 0 15px 0; font-size:1rem; color:var(--weread-blue);"># ${currentFilter}</h3>`;
+            filteredMemos.slice().reverse().forEach(memo => {
+                const card = document.createElement('div');
+                card.className = 'memo-card';
+                let displayContent = memo.desc.replace(/#([^\s#]+)/g, '<span class="memo-tag-link">#$1</span>');
+                card.innerHTML = `
+                    <span class="del-btn" onclick="deleteMemo(${memo.id})">×</span>
+                    <div>${displayContent}</div>
+                    <div style="font-size:0.7rem; color:#94A3B8; margin-top:8px;">${memo.time || ''}</div>
+                `;
+                container.appendChild(card);
+            });
+            if(filteredMemos.length === 0) container.innerHTML += '<div style="color:#999; font-size:0.8rem;">该标签下暂无灵感</div>';
+        } 
+        // 否则渲染任务列表
+        else {
+            inputArea.style.display = 'block';
+            const todayStr = new Date().toISOString().split('T')[0];
+            const filteredTasks = tasks.filter(t => {
+                if (currentFilter === 'today') return t.date === todayStr || (t.date < todayStr && !t.done);
+                return true;
+            });
+
+            filteredTasks.forEach(t => {
+                const item = document.createElement('div');
+                item.className = 'todo-item';
+                item.innerHTML = `
+                    <div class="todo-main">
+                        <input type="checkbox" ${t.done?'checked':''} onclick="toggleTask(${t.id})"> 
+                        <div style="margin-left:12px; text-decoration:${t.done?'line-through':'none'}; color:${t.done? '#CBD5E1':'inherit'}">${t.name}</div>
+                    </div>`;
+                container.appendChild(item);
+            });
+        }
+        
+        document.getElementById('stat-pending').innerText = tasks.filter(x=>!x.done).length;
+        document.getElementById('stat-focus').innerText = pomoCount;
     }
 
     // --- 业务逻辑 ---
@@ -246,8 +339,20 @@
         document.getElementById('live-date').innerText = now.toLocaleDateString('zh-CN', {weekday:'long', month:'long', day:'numeric'});
     }
 
-    function renderTags() {
-        document.getElementById('tag-selector').innerHTML = tags.map(t => `<span class="tag-pill ${selectedTagId===t.id?'active':''}" style="color:${t.color}" onclick="selectedTagId='${t.id}'; renderTags()">${t.name}</span>`).join('');
+    function setFilter(f, el, isTag = false) { 
+        currentFilter = f; 
+        document.querySelectorAll('.nav-item, .tag-node').forEach(x => x.classList.remove('active'));
+        if (el) el.classList.add('active');
+        if (!isTag) {
+            // 如果点击的是顶部导航，确保标签树没有选中
+            renderTagTree();
+        }
+        render(); 
+    }
+
+    function toggleTask(id) {
+        const task = tasks.find(t => t.id === id);
+        if(task) { task.done = !task.done; save(); }
     }
 
     function addTask() {
@@ -257,28 +362,18 @@
         input.value = ""; save();
     }
 
-    function render() {
-        const container = document.getElementById('list-container');
-        container.innerHTML = '';
-        const todayStr = new Date().toISOString().split('T')[0];
-        
-        const filtered = tasks.filter(t => {
-            if (currentFilter === 'today') return t.date === todayStr || (t.date < todayStr && !t.done);
-            return true;
-        });
-
-        filtered.forEach(t => {
-            const item = document.createElement('div');
-            item.className = 'todo-item';
-            item.innerHTML = `<div class="todo-main"><input type="checkbox" ${t.done?'checked':''}> <div style="margin-left:12px;">${t.name}</div></div>`;
-            container.appendChild(item);
-        });
-        
-        document.getElementById('stat-pending').innerText = tasks.filter(x=>!x.done).length;
-        document.getElementById('stat-focus').innerText = pomoCount;
+    function createNewTag() {
+        const name = document.getElementById('new-tag-name').value;
+        if(!name) return;
+        tags.push({ id: 't'+Date.now(), name, color: document.getElementById('new-tag-color').value });
+        renderTags(); save();
     }
 
-    // --- 笔记交互 ---
+    function renderTags() {
+        document.getElementById('tag-selector').innerHTML = tags.map(t => `<span class="tag-pill ${selectedTagId===t.id?'active':''}" style="color:${t.color}" onclick="selectedTagId='${t.id}'; renderTags()">${t.name}</span>`).join('');
+    }
+
+    // --- 灵感存档交互 ---
     function toggleNoteEditor() {
         const disp = document.getElementById('note-display'), edit = document.getElementById('note-editor');
         edit.style.display = (edit.style.display === 'block') ? 'none' : 'block';
@@ -288,29 +383,46 @@
     function saveNote() {
         const c = document.getElementById('n-content').value;
         if(!c) return;
-        myNotes.push({ title: "我的摘录", desc: c, author: "Me", isPrivate: true });
+        const parsed = parseTags(c);
+        myNotes.push({ 
+            id: Date.now(),
+            title: "我的摘录", 
+            desc: c, 
+            parsedTags: parsed,
+            author: "Me", 
+            time: new Date().toLocaleString(),
+            isPrivate: true 
+        });
         document.getElementById('n-content').value = '';
         toggleNoteEditor();
         save();
         nextBook();
     }
 
+    function deleteMemo(id) {
+        if(confirm('确定移除这段灵感存档吗？')) {
+            myNotes = myNotes.filter(m => m.id !== id);
+            save();
+        }
+    }
+
     function nextBook() {
-        const pool = (myNotes.length > 0 && Math.random() < 0.6) ? myNotes : bookLibrary;
+        const pool = (myNotes.length > 0 && Math.random() < 0.7) ? myNotes : bookLibrary;
         const b = pool[Math.floor(Math.random() * pool.length)];
         document.getElementById('book-title').innerText = b.title || "灵感摘录";
         document.getElementById('book-author').innerText = b.author || "佚名";
         document.getElementById('book-desc').innerText = b.desc;
     }
 
-    function setFilter(f, el) { currentFilter=f; document.querySelectorAll('.nav-item').forEach(x=>x.classList.remove('active')); el.classList.add('active'); render(); }
-    
-    // --- 番茄钟基础逻辑 ---
+    // --- 番茄钟 ---
     let pTime=1500, pInt=null;
-    function resetPomo() { pTime=document.getElementById('p-min').value*60; updatePomoDisp(); clearInterval(pInt); pInt=null; }
+    function resetPomo() { pTime=document.getElementById('p-min').value*60; updatePomoDisp(); clearInterval(pInt); pInt=null; document.getElementById('p-start').innerText='开始专注'; }
     function togglePomo() {
-        if(pInt) { clearInterval(pInt); pInt=null; }
-        else { pInt=setInterval(()=>{ pTime--; updatePomoDisp(); if(pTime<=0){pomoCount++; save(); resetPomo();}},1000); }
+        if(pInt) { clearInterval(pInt); pInt=null; document.getElementById('p-start').innerText='继续'; }
+        else { 
+            document.getElementById('p-start').innerText='计时中...';
+            pInt=setInterval(()=>{ pTime--; updatePomoDisp(); if(pTime<=0){pomoCount++; save(); resetPomo(); alert('番茄完成！');}},1000); 
+        }
     }
     function updatePomoDisp() { const m=Math.floor(pTime/60), s=pTime%60; document.getElementById('timer-val').innerText=`${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`; }
 </script>
