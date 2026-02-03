@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>专注清单 Pro - 全功能云同步版</title>
+    <title>专注清单 Pro - 稳定修复版</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root {
@@ -12,7 +12,7 @@
         }
 
         body {
-            font-family: 'PingFang SC', 'Inter', system-ui, sans-serif;
+            font-family: 'PingFang SC', system-ui, sans-serif;
             background: var(--bg); color: var(--text-main);
             margin: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden;
         }
@@ -21,7 +21,7 @@
         .sync-banner { 
             background: #334155; color: white; padding: 6px 24px; 
             display: flex; justify-content: space-between; align-items: center; 
-            font-size: 0.75rem; z-index: 1000; box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            font-size: 0.75rem; z-index: 1000;
         }
         .sync-banner input { 
             background: rgba(255,255,255,0.1); border: 1px solid #555; 
@@ -49,7 +49,7 @@
         .input-row { display: flex; gap: 12px; align-items: center; margin-bottom: 12px; }
         .input-row input[type="text"] { flex: 1; border: none; outline: none; font-size: 1rem; }
         
-        .tag-pill { padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; cursor: pointer; border: 1px solid transparent; transition: 0.2s; background: #F1F5F9; }
+        .tag-pill { padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; cursor: pointer; border: 1px solid transparent; transition: 0.2s; background: #F1F5F9; margin-right: 5px; margin-bottom: 5px;}
         .tag-pill.active { border-color: currentColor; background: white; font-weight: bold; }
 
         /* 列表项 */
@@ -58,9 +58,9 @@
         .todo-main:hover { background: #FAFBFC; }
         .todo-details { 
             max-height: 0; overflow: hidden; transition: max-height 0.3s ease; 
-            background: #FBFCFD; border-top: 0px solid #EEE;
+            background: #FBFCFD;
         }
-        .todo-item.active .todo-details { max-height: 400px; padding: 16px; border-top-width: 1px; }
+        .todo-item.active .todo-details { max-height: 400px; padding: 16px; border-top: 1px solid #EEE; }
 
         /* 侧边导航 */
         .nav-item { 
@@ -71,19 +71,17 @@
 
         /* 番茄钟 */
         .pomo-timer { text-align: center; padding: 24px; }
-        .pomo-setting { margin-top: 10px; font-size: 0.75rem; color: var(--text-sec); }
-        .pomo-setting input { width: 45px; border: 1px solid #EEE; border-radius: 4px; text-align: center; }
+        #timer-val { font-size: 3.5rem; font-weight: 200; color: var(--morandi-red); margin: 10px 0;}
 
-        button { background: var(--morandi-red); color: white; border: none; padding: 8px 16px; border-radius: 10px; cursor: pointer; transition: 0.2s; }
-        button:hover { opacity: 0.9; }
+        button { background: var(--morandi-red); color: white; border: none; padding: 8px 16px; border-radius: 10px; cursor: pointer; }
         .btn-ghost { background: #F1F5F9; color: var(--text-sec); }
 
-        /* 日历悬停 */
-        .cal-day { height: 36px; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; }
+        /* 日历样式 */
+        .cal-day { height: 35px; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; cursor: default;}
         .cal-pop {
             position: absolute; bottom: 110%; left: 50%; transform: translateX(-50%);
             background: #334155; color: white; padding: 8px; border-radius: 8px;
-            width: 150px; font-size: 0.7rem; visibility: hidden; opacity: 0; z-index: 100; pointer-events: none;
+            width: 140px; font-size: 0.7rem; visibility: hidden; opacity: 0; z-index: 100; pointer-events: none;
         }
         .cal-day:hover .cal-pop { visibility: visible; opacity: 1; }
 
@@ -105,14 +103,13 @@
 <div class="app-shell">
     <div class="panel">
         <div style="padding: 24px; border-bottom: 1px solid #F1F5F9;">
-            <div id="live-time" style="font-size: 1.8rem; font-weight: 300; color: var(--morandi-red);"></div>
-            <div id="live-date" style="color: var(--text-sec); font-size: 0.85rem;"></div>
+            <div id="live-time" style="font-size: 1.8rem; font-weight: 300; color: var(--morandi-red);">00:00</div>
+            <div id="live-date" style="color: var(--text-sec); font-size: 0.85rem;">加载中...</div>
         </div>
-        <div id="calendar-grid" style="display: grid; grid-template-columns: repeat(7, 1fr); padding: 15px; font-size: 0.75rem;"></div>
+        <div id="calendar-grid" style="display: grid; grid-template-columns: repeat(7, 1fr); padding: 15px; font-size: 0.7rem; text-align: center;"></div>
         <div class="nav-group">
             <div class="nav-item active" onclick="setFilter('today', this)">今日/逾期</div>
             <div class="nav-item" onclick="setFilter('week', this)">本周事项</div>
-            <div class="nav-item" onclick="setFilter('month', this)">本月事项</div>
             <div class="nav-item" onclick="setFilter('all', this)">所有事项</div>
         </div>
     </div>
@@ -121,19 +118,19 @@
         <div class="stats-bar">
             <div class="stat-card"><div id="stat-progress" class="stat-val">0%</div><div style="font-size:0.7rem; color:#94A3B8;">今日进度</div></div>
             <div class="stat-card"><div id="stat-pending" class="stat-val">0</div><div style="font-size:0.7rem; color:#94A3B8;">待办任务</div></div>
-            <div class="stat-card"><div id="stat-focus" class="stat-val">0</div><div style="font-size:0.7rem; color:#94A3B8;">已获番茄</div></div>
+            <div class="stat-card"><div id="stat-focus" class="stat-val">0</div><div style="font-size:0.7rem; color:#94A3B8;">番茄数</div></div>
         </div>
 
         <div class="input-area">
             <div class="input-row">
-                <input type="text" id="t-input" placeholder="输入任务名称，按回车创建..." onkeydown="if(event.keyCode==13) addTask()">
+                <input type="text" id="t-input" placeholder="回车添加任务..." onkeydown="if(event.keyCode==13) addTask()">
                 <input type="date" id="t-date" style="border:none; color:var(--text-sec); font-size:0.8rem;">
             </div>
-            <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px;" id="tag-selector"></div>
+            <div id="tag-selector" style="margin-bottom: 12px;"></div>
             <div style="display: flex; gap: 8px; border-top: 1px solid #F1F5F9; padding-top: 10px;">
-                <input type="text" id="new-tag-name" placeholder="新标签名" style="width:80px; font-size:0.7rem;">
-                <input type="color" id="new-tag-color" value="#E08E8E" style="border:none; height:20px; width:20px; cursor:pointer; background:none;">
-                <button onclick="createNewTag()" style="padding: 2px 10px; font-size: 0.7rem;">创建标签</button>
+                <input type="text" id="new-tag-name" placeholder="新标签" style="width:70px; font-size:0.7rem; border:1px solid #EEE; border-radius:4px; padding:2px 5px;">
+                <input type="color" id="new-tag-color" value="#E08E8E" style="border:none; width:20px; height:20px; background:none;">
+                <button onclick="createNewTag()" style="padding: 2px 10px; font-size: 0.7rem;">创建</button>
             </div>
         </div>
 
@@ -142,59 +139,70 @@
 
     <div style="display: flex; flex-direction: column; gap: 24px;">
         <div class="panel pomo-timer">
-            <div id="timer-val" style="font-size: 3.5rem; font-weight: 200; color: var(--morandi-red);">25:00</div>
-            <div class="pomo-setting">时长: <input type="number" id="p-min" value="25" onchange="resetPomo()"> 分钟</div>
-            <div style="display: flex; gap: 10px; margin-top: 20px;"><button id="p-start" onclick="togglePomo()" style="flex:1">开始专注</button><button onclick="resetPomo()" class="btn-ghost">重置</button></div>
+            <div id="timer-val">25:00</div>
+            <div class="pomo-setting">时长: <input type="number" id="p-min" value="25" onchange="resetPomo()"> 分</div>
+            <div style="display: flex; gap: 10px; margin-top: 20px;"><button id="p-start" onclick="togglePomo()" style="flex:1">开始</button><button onclick="resetPomo()" class="btn-ghost">重置</button></div>
         </div>
 
         <div class="panel scroll" style="flex: 1; padding: 20px;">
             <div style="font-weight: bold; color: var(--morandi-red); margin-bottom: 10px;">🐢 海龟汤</div>
-            <div id="soup-f" style="font-size: 0.85rem; line-height: 1.6;"></div>
+            <div id="soup-f" style="font-size: 0.85rem; line-height: 1.6; color: var(--text-main);"></div>
             <details style="margin-top: 10px; background: #F8FAFC; padding: 10px; border-radius: 10px;">
-                <summary style="font-size:0.8rem; cursor:pointer;">查看真相</summary>
+                <summary style="font-size:0.8rem; cursor:pointer; color:var(--text-sec)">真相</summary>
                 <div id="soup-b" style="color: #B07070; font-size: 0.8rem; padding-top: 5px;"></div>
             </details>
-            <button onclick="nextSoup()" style="margin-top: 15px; width: 100%; font-size: 0.8rem; background: var(--morandi-red-light); color: var(--morandi-red);">换一碗</button>
+            <button onclick="nextSoup()" style="margin-top: 15px; width: 100%; font-size: 0.8rem; background: var(--morandi-red-light); color: var(--morandi-red);">换一题</button>
         </div>
     </div>
 </div>
 
 <script>
-    // --- 1. 配置区 ---
+    // --- 1. 配置 ---
     const SB_URL = 'https://jmkbmedqxcjefmnygyby.supabase.co'; 
-    const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Impta2JtZWRxeGNqZWZtbnlneWJ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAwNjEyMTgsImV4cCI6MjA4NTYzNzIxOH0.x2BbeuxwPe8MEop7hzvZo0fZ9LRmNm3Jj5JgAA0MzXQ'; // 请在此填入你的 anon/public key
+    const SB_KEY = 'YOUR_ANON_KEY_HERE'; 
     let supabase = null;
 
-    // --- 2. 数据状态 ---
-    let tags = JSON.parse(localStorage.getItem('tags_v8')) || [
-        {id: 't1', name: '工作', color: '#8E9EAB'},
-        {id: 't2', name: '生活', color: '#A3B18A'}
+    // --- 2. 状态 ---
+    let tasks = JSON.parse(localStorage.getItem('tasks_v8.6')) || [];
+    let tags = JSON.parse(localStorage.getItem('tags_v8.6')) || [
+        {id:'t1', name:'工作', color:'#8E9EAB'}, {id:'t2', name:'生活', color:'#A3B18A'}
     ];
-    let tasks = JSON.parse(localStorage.getItem('tasks_v8')) || [];
-    let pomoCount = parseInt(localStorage.getItem('pomo_v8')) || 0;
+    let pomoCount = parseInt(localStorage.getItem('pomo_v8.6')) || 0;
     let currentFilter = 'today';
     let selectedTagId = 't1';
 
-    // --- 3. 云同步逻辑 ---
+    // --- 3. 初始化 ---
+    function init() {
+        updateClock();
+        setInterval(updateClock, 1000);
+        render();
+        renderTags();
+        nextSoup();
+    }
+
+    // --- 4. 云同步功能 (带容错) ---
     async function initSupabase() {
         const code = document.getElementById('sync-code').value;
-        if (!code) return;
-        supabase = supabasejs.createClient(SB_URL, SB_KEY);
-        document.getElementById('sync-status').innerText = '正在云端同步...';
+        if (!code || typeof supabasejs === 'undefined') return;
         
         try {
+            supabase = supabasejs.createClient(SB_URL, SB_KEY);
+            document.getElementById('sync-status').innerText = '同步中...';
             const { data, error } = await supabase.from('focus_data').select('*').eq('sync_code', code).single();
             if (data) {
                 tasks = data.tasks || [];
                 tags = data.tags || tags;
                 pomoCount = data.pomo || 0;
                 saveLocally(); render(); renderTags();
-                document.getElementById('sync-status').innerText = '云端同步开启';
+                document.getElementById('sync-status').innerText = '同步成功';
             } else {
-                document.getElementById('sync-status').innerText = '新口令就绪';
-                saveCloud(); // 初始上传
+                document.getElementById('sync-status').innerText = '新口令已创建';
+                saveCloud();
             }
-        } catch(e) { console.error(e); }
+        } catch(e) { 
+            document.getElementById('sync-status').innerText = '配置错误';
+            console.error(e);
+        }
     }
 
     async function saveCloud() {
@@ -202,19 +210,19 @@
         if (!supabase || !code) return;
         await supabase.from('focus_data').upsert({
             sync_code: code, tasks, tags, pomo: pomoCount
-        }, { onConflict: 'sync_code' });
-        document.getElementById('cloud-info').innerText = '云端已更新 ' + new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+        });
+        document.getElementById('cloud-info').innerText = '已云同步 ' + new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
     }
 
     function saveLocally() {
-        localStorage.setItem('tags_v8', JSON.stringify(tags));
-        localStorage.setItem('tasks_v8', JSON.stringify(tasks));
-        localStorage.setItem('pomo_v8', pomoCount);
+        localStorage.setItem('tasks_v8.6', JSON.stringify(tasks));
+        localStorage.setItem('tags_v8.6', JSON.stringify(tags));
+        localStorage.setItem('pomo_v8.6', pomoCount);
     }
 
     function save() { saveLocally(); saveCloud(); render(); }
 
-    // --- 4. 业务功能 ---
+    // --- 5. 页面渲染逻辑 ---
     function updateClock() {
         const now = new Date();
         document.getElementById('live-time').innerText = now.toLocaleTimeString('zh-CN', {hour:'2-digit', minute:'2-digit'});
@@ -226,27 +234,8 @@
         container.innerHTML = tags.map(t => `
             <span class="tag-pill ${selectedTagId === t.id ? 'active' : ''}" 
                   style="color: ${t.color}" onclick="selectedTagId='${t.id}'; renderTags()">
-                ${t.name} <small onclick="event.stopPropagation(); deleteTag('${t.id}')" style="opacity:0.5">×</small>
+                ${t.name} <small onclick="event.stopPropagation(); deleteTag('${t.id}')" style="opacity:0.4">×</small>
             </span>`).join('');
-    }
-
-    function createNewTag() {
-        const name = document.getElementById('new-tag-name').value;
-        const color = document.getElementById('new-tag-color').value;
-        if(!name) return;
-        tags.push({ id: 't' + Date.now(), name, color });
-        document.getElementById('new-tag-name').value = '';
-        save(); renderTags();
-    }
-
-    function deleteTag(id) { tags = tags.filter(t => t.id !== id); save(); renderTags(); }
-
-    function addTask() {
-        const input = document.getElementById('t-input');
-        const date = document.getElementById('t-date').value;
-        if(!input.value.trim()) return;
-        tasks.push({ id: Date.now(), name: input.value, date: date || "", tagId: selectedTagId, desc: "", done: false });
-        input.value = ""; save();
     }
 
     function render() {
@@ -254,7 +243,7 @@
         container.innerHTML = '';
         const todayStr = new Date().toISOString().split('T')[0];
 
-        // 统计更新
+        // 统计
         const todayTasks = tasks.filter(t => t.date === todayStr || (t.date < todayStr && !t.done));
         document.getElementById('stat-progress').innerText = (todayTasks.length ? Math.round(todayTasks.filter(x=>x.done).length/todayTasks.length*100) : 0) + "%";
         document.getElementById('stat-pending').innerText = todayTasks.filter(x=>!x.done).length;
@@ -262,26 +251,28 @@
 
         const filtered = tasks.filter(t => {
             if (currentFilter === 'today') return t.date === todayStr || (t.date < todayStr && !t.done);
-            if (currentFilter === 'week') return t.date && (Math.abs(new Date(t.date) - new Date()) / 86400000 <= 7);
-            if (currentFilter === 'month') return t.date && t.date.startsWith(todayStr.slice(0,7));
+            if (currentFilter === 'week') {
+                if(!t.date) return false;
+                return Math.abs(new Date(t.date) - new Date()) / 86400000 <= 7;
+            }
             return true;
         });
 
         filtered.forEach(t => {
-            const tag = tags.find(x => x.id === t.tagId) || {name:'无', color:'#CCC'};
+            const tag = tags.find(x => x.id === t.tagId) || {color:'#CCC'};
             const isOverdue = t.date && t.date < todayStr && !t.done;
-            const item = document.createElement('div');
-            item.className = 'todo-item';
-            item.innerHTML = `
+            const div = document.createElement('div');
+            div.className = 'todo-item';
+            div.innerHTML = `
                 <div class="todo-main" onclick="this.parentElement.classList.toggle('active')">
                     <input type="checkbox" ${t.done?'checked':''} onclick="event.stopPropagation(); toggleDone(${t.id})">
-                    <div style="flex:1; margin-left:12px; border-left:3px solid ${tag.color}; padding-left:10px; ${t.done?'opacity:0.4;text-decoration:line-through':''}">
-                        <div>${t.name} ${isOverdue?'<span style="color:red; font-size:0.7rem;">!</span>':''}</div>
-                        <small style="color:${isOverdue?'red':'var(--text-sec)'}">${t.date || '随时'}</small>
+                    <div style="flex:1; margin-left:12px; border-left:4px solid ${tag.color}; padding-left:10px; ${t.done?'opacity:0.4;text-decoration:line-through':''}">
+                        <div>${t.name} ${isOverdue?'<span style="color:red; font-weight:bold">!</span>':''}</div>
+                        <small style="color:${isOverdue?'red':'#94A3B8'}">${t.date || '随时'}</small>
                     </div>
                 </div>
                 <div class="todo-details">
-                    <textarea placeholder="描述..." onblur="updateTask(${t.id}, 'desc', this.value)">${t.desc||''}</textarea>
+                    <textarea placeholder="描述/备注..." onblur="updateTask(${t.id}, 'desc', this.value)">${t.desc||''}</textarea>
                     <div style="display:flex; gap:10px; margin-top:10px;">
                         <input type="date" value="${t.date}" onchange="updateTask(${t.id}, 'date', this.value)" style="flex:1">
                         <select onchange="updateTask(${t.id}, 'tagId', this.value)" style="flex:1">
@@ -290,7 +281,7 @@
                         <button onclick="delTask(${t.id})" style="background:#FEE2E2; color:red;">删除</button>
                     </div>
                 </div>`;
-            container.appendChild(item);
+            container.appendChild(div);
         });
         renderCalendar();
     }
@@ -306,38 +297,44 @@
                 <div class="cal-day">
                     <span style="${i===now.getDate()?'color:var(--morandi-red);font-weight:bold':''}">${i}</span>
                     <div class="cal-pop">${dayTasks.length ? dayTasks.map(t=>'• '+t.name).join('<br>') : '无事项'}</div>
-                    ${dayTasks.length ? `<div style="width:3px; height:3px; background:var(--morandi-red); border-radius:50%; margin-top:2px;"></div>` : ''}
+                    ${dayTasks.length ? `<div style="width:4px; height:4px; background:var(--morandi-red); border-radius:50%; margin-top:2px;"></div>` : ''}
                 </div>`;
         }
     }
 
-    // --- 5. 番茄钟 & 海龟汤 ---
-    let pTime = 1500, pInt = null;
-    function resetPomo() { pTime = document.getElementById('p-min').value * 60; updatePomoDisp(); clearInterval(pInt); pInt = null; document.getElementById('p-start').innerText="开始专注"; }
-    function togglePomo() {
-        if(pInt) { clearInterval(pInt); pInt = null; document.getElementById('p-start').innerText="继续"; }
-        else {
-            pInt = setInterval(() => { pTime--; updatePomoDisp(); if(pTime<=0){ clearInterval(pInt); pomoCount++; save(); alert('专注完成！'); resetPomo(); } }, 1000);
-            document.getElementById('p-start').innerText="暂停";
-        }
+    // --- 6. 交互功能 ---
+    function addTask() {
+        const input = document.getElementById('t-input');
+        if(!input.value.trim()) return;
+        tasks.push({id:Date.now(), name:input.value, date:document.getElementById('t-date').value||"", tagId:selectedTagId, desc:"", done:false});
+        input.value = ""; save();
     }
-    function updatePomoDisp() {
-        const m = Math.floor(pTime/60), s = pTime%60;
-        document.getElementById('timer-val').innerText = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
-    }
-
-    const soupLibrary = [{f:"半根火柴：沙漠里的死者。", b:"热气球失重抽签。"}, {f:"海龟汤：喝完后自杀。", b:"意识到曾经吃的不是海龟汤。"}];
-    function nextSoup() { const s = soupLibrary[Math.floor(Math.random()*soupLibrary.length)]; document.getElementById('soup-f').innerText = s.f; document.getElementById('soup-b').innerText = s.b; }
-
-    // 工具函数
-    function toggleDone(id) { const t = tasks.find(x=>x.id===id); t.done = !t.done; save(); }
+    function toggleDone(id) { const t = tasks.find(x=>x.id===id); t.done=!t.done; save(); }
     function delTask(id) { tasks = tasks.filter(x=>x.id!==id); save(); }
     function updateTask(id, k, v) { const t = tasks.find(x=>x.id===id); if(t) t[k]=v; save(); }
-    function setFilter(f, el) { currentFilter = f; document.querySelectorAll('.nav-item').forEach(x=>x.classList.remove('active')); el.classList.add('active'); render(); }
+    function createNewTag() {
+        const n = document.getElementById('new-tag-name').value;
+        if(!n) return;
+        tags.push({id:'t'+Date.now(), name:n, color:document.getElementById('new-tag-color').value});
+        document.getElementById('new-tag-name').value=''; save(); renderTags();
+    }
+    function deleteTag(id) { tags=tags.filter(t=>t.id!==id); save(); renderTags(); }
+    function setFilter(f, el) { currentFilter=f; document.querySelectorAll('.nav-item').forEach(i=>i.classList.remove('active')); el.classList.add('active'); render(); }
 
-    // 初始化
-    updateClock(); setInterval(updateClock, 1000);
-    render(); renderTags(); nextSoup();
+    // 番茄钟
+    let pTime = 1500, pInt = null;
+    function resetPomo() { pTime = document.getElementById('p-min').value*60; updatePomoDisp(); clearInterval(pInt); pInt=null; document.getElementById('p-start').innerText="开始"; }
+    function togglePomo() {
+        if(pInt) { clearInterval(pInt); pInt=null; document.getElementById('p-start').innerText="继续"; }
+        else { pInt = setInterval(()=>{pTime--; updatePomoDisp(); if(pTime<=0){clearInterval(pInt); pomoCount++; save(); resetPomo(); alert('专注时间到！');}},1000); document.getElementById('p-start').innerText="暂停"; }
+    }
+    function updatePomoDisp() { const m=Math.floor(pTime/60), s=pTime%60; document.getElementById('timer-val').innerText=`${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`; }
+
+    // 海龟汤
+    const soups = [{f:"男子点海龟汤喝了一口自杀了。", b:"由于海难曾吃过同伴肉骗说是海龟汤。"}, {f:"沙漠手里有半根火柴。", b:"热气球超重抽签自杀。"}, {f:"水里的男人没被淹死却死于窒息。", b:"他在潜水艇里。"}];
+    function nextSoup() { const s=soups[Math.floor(Math.random()*soups.length)]; document.getElementById('soup-f').innerText=s.f; document.getElementById('soup-b').innerText=s.b; }
+
+    init();
 </script>
 </body>
 </html>
