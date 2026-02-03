@@ -51,19 +51,26 @@
         .archive-section { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
         .archive-title { padding: 16px 24px 8px; font-size: 0.85rem; font-weight: bold; color: var(--text-main); opacity: 0.8; }
         .tag-tree { flex: 1; overflow-y: auto; padding: 0 10px; }
-        .tag-node { font-size: 0.8rem; padding: 6px 15px; cursor: pointer; border-radius: 8px; color: var(--text-sec); margin: 2px 8px; transition: 0.2s; }
+        .tag-node { 
+            font-size: 0.8rem; padding: 6px 15px; cursor: pointer; border-radius: 8px; 
+            color: var(--text-sec); margin: 2px 8px; transition: 0.2s;
+            display: flex; justify-content: space-between; align-items: center;
+        }
         .tag-node:hover { background: #F1F5F9; color: var(--weread-blue); }
         .tag-node.active { color: var(--weread-blue); font-weight: bold; background: #E3F2FD; }
+        .tag-count { font-size: 0.7rem; opacity: 0.5; font-weight: normal; }
         .sub-tag { padding-left: 30px; font-size: 0.75rem; opacity: 0.8; }
 
         /* 灵感内容卡片样式 */
         .memo-card { 
             background: #F8FAFC; border-radius: 12px; padding: 16px; margin-bottom: 12px; 
-            font-size: 0.85rem; line-height: 1.6; position: relative; border: 1px solid transparent; transition: 0.3s;
+            font-size: 0.85rem; line-height: 1.6; position: relative; border: 1px solid transparent; 
+            transition: 0.3s; cursor: pointer;
         }
-        .memo-card:hover { border-color: #E2E8F0; background: #FFF; box-shadow: var(--shadow); }
-        .memo-card .del-btn { position: absolute; right: 12px; top: 12px; opacity: 0; cursor: pointer; color: #CBD5E1; font-size: 1.2rem; }
+        .memo-card:hover { border-color: var(--weread-blue); background: #FFF; box-shadow: var(--shadow); }
+        .memo-card .del-btn { position: absolute; right: 12px; top: 12px; opacity: 0; cursor: pointer; color: #CBD5E1; font-size: 1.2rem; padding: 0 5px; }
         .memo-card:hover .del-btn { opacity: 1; }
+        .memo-card .del-btn:hover { color: var(--morandi-red); }
         .memo-tag-link { color: var(--weread-blue); margin-right: 5px; text-decoration: none; font-weight: 500; }
 
         .stats-bar { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px; }
@@ -119,8 +126,7 @@
         
         <div class="archive-section">
             <div class="archive-title">✨ 灵感存档 (flomo)</div>
-            <div id="tag-tree-container" class="tag-tree scroll">
-                </div>
+            <div id="tag-tree-container" class="tag-tree scroll"></div>
         </div>
     </div>
 
@@ -198,7 +204,7 @@
     let myNotes = JSON.parse(localStorage.getItem('my_notes_v88')) || [];
     let pomoCount = parseInt(localStorage.getItem('pomo_v88')) || 0;
     
-    let currentFilter = 'today'; // 'today', 'all', or a specific tag name
+    let currentFilter = 'today'; 
     let selectedTagId = 't1';
 
     window.onload = function() {
@@ -236,7 +242,6 @@
 
     function save() { saveLocally(); saveCloud(); render(); renderTagTree(); }
 
-    // --- Flomo 标签解析器 ---
     function parseTags(text) {
         const regex = /#([^\s#]+)/g;
         const tagsFound = [];
@@ -247,14 +252,16 @@
         return tagsFound;
     }
 
-    // --- 渲染左侧标签树 ---
+    // --- 渲染左侧标签树（含数量统计） ---
     function renderTagTree() {
         const container = document.getElementById('tag-tree-container');
         const tagMap = {}; 
+        const tagCounts = {};
 
         myNotes.forEach(memo => {
-            const mTags = memo.parsedTags || [];
+            const mTags = (memo.parsedTags && memo.parsedTags.length > 0) ? memo.parsedTags : ["未分类"];
             mTags.forEach(tag => {
+                tagCounts[tag] = (tagCounts[tag] || 0) + 1;
                 if (tag.includes('/')) {
                     const [parent, child] = tag.split('/');
                     if (!tagMap[parent]) tagMap[parent] = new Set();
@@ -268,11 +275,22 @@
         let html = '';
         Object.keys(tagMap).sort().forEach(parent => {
             const isActive = currentFilter === parent;
-            html += `<div class="tag-node ${isActive?'active':''}" onclick="setFilter('${parent}', this, true)"># ${parent}</div>`;
+            const count = tagCounts[parent] || 0;
+            html += `
+                <div class="tag-node ${isActive?'active':''}" onclick="setFilter('${parent}', this, true)">
+                    <span># ${parent}</span>
+                    <span class="tag-count">${count}</span>
+                </div>`;
+            
             tagMap[parent].forEach(child => {
                 const fullTag = `${parent}/${child}`;
                 const isSubActive = currentFilter === fullTag;
-                html += `<div class="tag-node sub-tag ${isSubActive?'active':''}" onclick="setFilter('${fullTag}', this, true)">└ ${child}</div>`;
+                const subCount = tagCounts[fullTag] || 0;
+                html += `
+                    <div class="tag-node sub-tag ${isSubActive?'active':''}" onclick="setFilter('${fullTag}', this, true)">
+                        <span>└ ${child}</span>
+                        <span class="tag-count">${subCount}</span>
+                    </div>`;
             });
         });
 
@@ -285,30 +303,36 @@
         container.innerHTML = '';
         const inputArea = document.getElementById('main-input-area');
         
-        // 如果当前是标签筛选，渲染灵感卡片列表
         if (currentFilter !== 'today' && currentFilter !== 'all' && currentFilter !== 'week') {
-            inputArea.style.display = 'none'; // 灵感浏览模式隐藏任务输入
+            inputArea.style.display = 'none'; 
             
-            const filteredMemos = myNotes.filter(m => 
-                m.parsedTags && m.parsedTags.some(t => t === currentFilter || t.startsWith(currentFilter + '/'))
-            );
+            const filteredMemos = myNotes.filter(m => {
+                const effectiveTags = (m.parsedTags && m.parsedTags.length > 0) ? m.parsedTags : ["未分类"];
+                return effectiveTags.some(t => t === currentFilter || t.startsWith(currentFilter + '/'));
+            });
 
-            container.innerHTML = `<h3 style="margin:0 0 15px 0; font-size:1rem; color:var(--weread-blue);"># ${currentFilter}</h3>`;
+            container.innerHTML = `<h3 style="margin:0 0 15px 0; font-size:1rem; color:var(--weread-blue); display:flex; justify-content:space-between;">
+                <span># ${currentFilter}</span>
+                <span style="font-size:0.7rem; font-weight:normal; color:#999;">点击卡片可编辑内容</span>
+            </h3>`;
+
             filteredMemos.slice().reverse().forEach(memo => {
                 const card = document.createElement('div');
                 card.className = 'memo-card';
+                card.onclick = (e) => {
+                    if(!e.target.classList.contains('del-btn')) triggerEditNote(memo);
+                };
+
                 let displayContent = memo.desc.replace(/#([^\s#]+)/g, '<span class="memo-tag-link">#$1</span>');
                 card.innerHTML = `
-                    <span class="del-btn" onclick="deleteMemo(${memo.id})">×</span>
+                    <span class="del-btn" onclick="event.stopPropagation(); deleteMemo(${memo.id})">×</span>
                     <div>${displayContent}</div>
-                    <div style="font-size:0.7rem; color:#94A3B8; margin-top:8px;">${memo.time || ''}</div>
+                    <div style="font-size:0.65rem; color:#94A3B8; margin-top:8px;">${memo.time || ''}</div>
                 `;
                 container.appendChild(card);
             });
             if(filteredMemos.length === 0) container.innerHTML += '<div style="color:#999; font-size:0.8rem;">该标签下暂无灵感</div>';
-        } 
-        // 否则渲染任务列表
-        else {
+        } else {
             inputArea.style.display = 'block';
             const todayStr = new Date().toISOString().split('T')[0];
             const filteredTasks = tasks.filter(t => {
@@ -332,7 +356,6 @@
         document.getElementById('stat-focus').innerText = pomoCount;
     }
 
-    // --- 业务逻辑 ---
     function updateClock() {
         const now = new Date();
         document.getElementById('live-time').innerText = now.toLocaleTimeString('zh-CN', {hour:'2-digit', minute:'2-digit'});
@@ -343,10 +366,7 @@
         currentFilter = f; 
         document.querySelectorAll('.nav-item, .tag-node').forEach(x => x.classList.remove('active'));
         if (el) el.classList.add('active');
-        if (!isTag) {
-            // 如果点击的是顶部导航，确保标签树没有选中
-            renderTagTree();
-        }
+        if (!isTag) renderTagTree();
         render(); 
     }
 
@@ -376,24 +396,50 @@
     // --- 灵感存档交互 ---
     function toggleNoteEditor() {
         const disp = document.getElementById('note-display'), edit = document.getElementById('note-editor');
-        edit.style.display = (edit.style.display === 'block') ? 'none' : 'block';
-        disp.style.display = (edit.style.display === 'block') ? 'none' : 'block';
+        const textarea = document.getElementById('n-content');
+        if (edit.style.display === 'block') {
+            edit.style.display = 'none'; disp.style.display = 'block';
+            textarea.value = ''; delete textarea.dataset.editId;
+            document.getElementById('note-type-label').innerText = "📖 灵感回顾";
+        } else {
+            edit.style.display = 'block'; disp.style.display = 'none';
+            textarea.focus();
+        }
+    }
+
+    function triggerEditNote(memo) {
+        toggleNoteEditor(); // 确保切换到编辑器
+        const textarea = document.getElementById('n-content');
+        textarea.value = memo.desc;
+        textarea.dataset.editId = memo.id;
+        document.getElementById('note-type-label').innerText = "✍️ 编辑灵感";
+        textarea.focus();
     }
 
     function saveNote() {
-        const c = document.getElementById('n-content').value;
-        if(!c) return;
-        const parsed = parseTags(c);
-        myNotes.push({ 
-            id: Date.now(),
-            title: "我的摘录", 
-            desc: c, 
-            parsedTags: parsed,
-            author: "Me", 
-            time: new Date().toLocaleString(),
-            isPrivate: true 
-        });
-        document.getElementById('n-content').value = '';
+        const textarea = document.getElementById('n-content');
+        const content = textarea.value.trim();
+        if(!content) return;
+        
+        const parsed = parseTags(content);
+        const editId = textarea.dataset.editId;
+
+        if (editId) {
+            const idx = myNotes.findIndex(m => m.id == editId);
+            if (idx !== -1) {
+                myNotes[idx].desc = content;
+                myNotes[idx].parsedTags = parsed;
+                myNotes[idx].time = new Date().toLocaleString() + " (已编辑)";
+            }
+        } else {
+            myNotes.push({ 
+                id: Date.now(),
+                desc: content, 
+                parsedTags: parsed,
+                time: new Date().toLocaleString()
+            });
+        }
+        
         toggleNoteEditor();
         save();
         nextBook();
