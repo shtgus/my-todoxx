@@ -2,7 +2,8 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>专注清单 Pro - 稳定修复版</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>专注清单 Pro - 最终修复版</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root {
@@ -10,92 +11,40 @@
             --morandi-red: #E08E8E; --morandi-red-light: #FDF2F2; --border: #E5E7EB;
             --shadow: 0 4px 20px rgba(0,0,0,0.04); --radius: 20px;
         }
-
-        body {
-            font-family: 'PingFang SC', system-ui, sans-serif;
-            background: var(--bg); color: var(--text-main);
-            margin: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden;
-        }
-
-        /* 同步状态条 */
-        .sync-banner { 
-            background: #334155; color: white; padding: 6px 24px; 
-            display: flex; justify-content: space-between; align-items: center; 
-            font-size: 0.75rem; z-index: 1000;
-        }
-        .sync-banner input { 
-            background: rgba(255,255,255,0.1); border: 1px solid #555; 
-            color: white; border-radius: 4px; padding: 2px 8px; outline: none; width: 120px;
-        }
-
-        .app-shell {
-            display: grid; grid-template-columns: 280px 1fr 320px;
-            gap: 24px; flex: 1; padding: 24px; box-sizing: border-box; overflow: hidden;
-        }
-
-        .panel {
-            background: var(--card); border-radius: var(--radius);
-            box-shadow: var(--shadow); display: flex; flex-direction: column;
-            overflow: hidden; border: 1px solid var(--border);
-        }
-
-        /* 统计卡片 */
+        body { font-family: 'PingFang SC', system-ui, sans-serif; background: var(--bg); color: var(--text-main); margin: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+        .sync-banner { background: #334155; color: white; padding: 6px 24px; display: flex; justify-content: space-between; align-items: center; font-size: 0.75rem; z-index: 1000; }
+        .sync-banner input { background: rgba(255,255,255,0.1); border: 1px solid #555; color: white; border-radius: 4px; padding: 2px 8px; outline: none; width: 120px; }
+        .app-shell { display: grid; grid-template-columns: 280px 1fr 320px; gap: 24px; flex: 1; padding: 24px; box-sizing: border-box; overflow: hidden; }
+        .panel { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); display: flex; flex-direction: column; overflow: hidden; border: 1px solid var(--border); }
         .stats-bar { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px; }
         .stat-card { background: #fff; padding: 18px; border-radius: 16px; text-align: center; border: 1px solid var(--border); }
         .stat-val { font-size: 1.4rem; font-weight: 700; color: var(--morandi-red); }
-
-        /* 输入区 */
         .input-area { background: white; padding: 16px; border-radius: 16px; border: 1px solid var(--border); margin-bottom: 24px; }
         .input-row { display: flex; gap: 12px; align-items: center; margin-bottom: 12px; }
-        .input-row input[type="text"] { flex: 1; border: none; outline: none; font-size: 1rem; }
-        
-        .tag-pill { padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; cursor: pointer; border: 1px solid transparent; transition: 0.2s; background: #F1F5F9; margin-right: 5px; margin-bottom: 5px;}
+        .input-row input[type="text"] { flex: 1; border: none; outline: none; font-size: 1rem; background: transparent; }
+        .tag-pill { padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; cursor: pointer; border: 1px solid transparent; background: #F1F5F9; margin-right: 5px; }
         .tag-pill.active { border-color: currentColor; background: white; font-weight: bold; }
-
-        /* 列表项 */
         .todo-item { border-bottom: 1px solid #F1F5F9; }
         .todo-main { display: flex; align-items: center; padding: 16px; cursor: pointer; }
-        .todo-main:hover { background: #FAFBFC; }
-        .todo-details { 
-            max-height: 0; overflow: hidden; transition: max-height 0.3s ease; 
-            background: #FBFCFD;
-        }
+        .todo-details { max-height: 0; overflow: hidden; transition: max-height 0.3s ease; background: #FBFCFD; }
         .todo-item.active .todo-details { max-height: 400px; padding: 16px; border-top: 1px solid #EEE; }
-
-        /* 侧边导航 */
-        .nav-item { 
-            padding: 12px 20px; margin: 4px 16px; cursor: pointer; border-radius: 12px; 
-            font-size: 0.9rem; color: var(--text-sec); display: flex; align-items: center; gap: 12px;
-        }
+        .nav-item { padding: 12px 20px; margin: 4px 16px; cursor: pointer; border-radius: 12px; font-size: 0.9rem; color: var(--text-sec); }
         .nav-item.active { background: var(--morandi-red-light); color: var(--morandi-red); font-weight: 600; }
-
-        /* 番茄钟 */
-        .pomo-timer { text-align: center; padding: 24px; }
-        #timer-val { font-size: 3.5rem; font-weight: 200; color: var(--morandi-red); margin: 10px 0;}
-
-        button { background: var(--morandi-red); color: white; border: none; padding: 8px 16px; border-radius: 10px; cursor: pointer; }
-        .btn-ghost { background: #F1F5F9; color: var(--text-sec); }
-
-        /* 日历样式 */
-        .cal-day { height: 35px; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; cursor: default;}
-        .cal-pop {
-            position: absolute; bottom: 110%; left: 50%; transform: translateX(-50%);
-            background: #334155; color: white; padding: 8px; border-radius: 8px;
-            width: 140px; font-size: 0.7rem; visibility: hidden; opacity: 0; z-index: 100; pointer-events: none;
-        }
+        .cal-day { height: 32px; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; font-size: 0.7rem; }
+        .cal-pop { position: absolute; bottom: 110%; left: 50%; transform: translateX(-50%); background: #334155; color: white; padding: 8px; border-radius: 8px; width: 120px; visibility: hidden; opacity: 0; z-index: 100; }
         .cal-day:hover .cal-pop { visibility: visible; opacity: 1; }
-
         .scroll { overflow-y: auto; scrollbar-width: none; }
         .scroll::-webkit-scrollbar { display: none; }
-        textarea { width: 100%; border: 1px solid var(--border); border-radius: 8px; padding: 10px; font-size: 0.85rem; resize: none; outline: none; box-sizing: border-box; }
+        button { cursor: pointer; border: none; transition: 0.2s; }
+        button:active { transform: scale(0.95); }
     </style>
 </head>
 <body>
 
 <div class="sync-banner">
-    <div>状态: <span id="sync-status">本地模式</span></div>
+    <div>状态: <span id="sync-status">离线模式</span></div>
     <div>
-        同步口令: <input type="password" id="sync-code" placeholder="输入口令同步" onblur="initSupabase()">
+        同步口令: <input type="password" id="sync-code" placeholder="输入口令同步" onblur="trySync()">
         <span id="cloud-info" style="margin-left:10px; opacity:0.7"></span>
     </div>
 </div>
@@ -106,123 +55,104 @@
             <div id="live-time" style="font-size: 1.8rem; font-weight: 300; color: var(--morandi-red);">00:00</div>
             <div id="live-date" style="color: var(--text-sec); font-size: 0.85rem;">加载中...</div>
         </div>
-        <div id="calendar-grid" style="display: grid; grid-template-columns: repeat(7, 1fr); padding: 15px; font-size: 0.7rem; text-align: center;"></div>
+        <div id="calendar-grid" style="display: grid; grid-template-columns: repeat(7, 1fr); padding: 15px;"></div>
         <div class="nav-group">
-            <div class="nav-item active" onclick="setFilter('today', this)">今日/逾期</div>
-            <div class="nav-item" onclick="setFilter('week', this)">本周事项</div>
-            <div class="nav-item" onclick="setFilter('all', this)">所有事项</div>
+            <div class="nav-item active" onclick="setFilter('today', this)">今日清单</div>
+            <div class="nav-item" onclick="setFilter('all', this)">全部任务</div>
         </div>
     </div>
 
     <div style="display: flex; flex-direction: column;">
         <div class="stats-bar">
-            <div class="stat-card"><div id="stat-progress" class="stat-val">0%</div><div style="font-size:0.7rem; color:#94A3B8;">今日进度</div></div>
-            <div class="stat-card"><div id="stat-pending" class="stat-val">0</div><div style="font-size:0.7rem; color:#94A3B8;">待办任务</div></div>
-            <div class="stat-card"><div id="stat-focus" class="stat-val">0</div><div style="font-size:0.7rem; color:#94A3B8;">番茄数</div></div>
+            <div class="stat-card"><div id="stat-progress" class="stat-val">0%</div><div style="font-size:0.7rem;">今日进度</div></div>
+            <div class="stat-card"><div id="stat-pending" class="stat-val">0</div><div style="font-size:0.7rem;">待办</div></div>
+            <div class="stat-card"><div id="stat-focus" class="stat-val">0</div><div style="font-size:0.7rem;">番茄</div></div>
         </div>
-
         <div class="input-area">
             <div class="input-row">
-                <input type="text" id="t-input" placeholder="回车添加任务..." onkeydown="if(event.keyCode==13) addTask()">
-                <input type="date" id="t-date" style="border:none; color:var(--text-sec); font-size:0.8rem;">
+                <input type="text" id="t-input" placeholder="输入任务按回车...">
+                <input type="date" id="t-date">
             </div>
-            <div id="tag-selector" style="margin-bottom: 12px;"></div>
-            <div style="display: flex; gap: 8px; border-top: 1px solid #F1F5F9; padding-top: 10px;">
-                <input type="text" id="new-tag-name" placeholder="新标签" style="width:70px; font-size:0.7rem; border:1px solid #EEE; border-radius:4px; padding:2px 5px;">
-                <input type="color" id="new-tag-color" value="#E08E8E" style="border:none; width:20px; height:20px; background:none;">
-                <button onclick="createNewTag()" style="padding: 2px 10px; font-size: 0.7rem;">创建</button>
-            </div>
+            <div id="tag-selector" style="margin-bottom:10px;"></div>
+            <button onclick="addTask()" style="background:var(--morandi-red); color:white; padding:5px 15px; border-radius:8px;">添加任务</button>
         </div>
-
         <div class="panel scroll" style="flex: 1;" id="list-container"></div>
     </div>
 
     <div style="display: flex; flex-direction: column; gap: 24px;">
-        <div class="panel pomo-timer">
-            <div id="timer-val">25:00</div>
-            <div class="pomo-setting">时长: <input type="number" id="p-min" value="25" onchange="resetPomo()"> 分</div>
-            <div style="display: flex; gap: 10px; margin-top: 20px;"><button id="p-start" onclick="togglePomo()" style="flex:1">开始</button><button onclick="resetPomo()" class="btn-ghost">重置</button></div>
+        <div class="panel" style="padding:20px; text-align:center;">
+            <div id="timer-val" style="font-size:3rem; color:var(--morandi-red);">25:00</div>
+            <button onclick="togglePomo()" id="p-btn" style="width:100%; padding:10px; background:var(--morandi-red); color:white; border-radius:10px; margin-top:10px;">开始</button>
         </div>
-
         <div class="panel scroll" style="flex: 1; padding: 20px;">
-            <div style="font-weight: bold; color: var(--morandi-red); margin-bottom: 10px;">🐢 海龟汤</div>
-            <div id="soup-f" style="font-size: 0.85rem; line-height: 1.6; color: var(--text-main);"></div>
-            <details style="margin-top: 10px; background: #F8FAFC; padding: 10px; border-radius: 10px;">
-                <summary style="font-size:0.8rem; cursor:pointer; color:var(--text-sec)">真相</summary>
-                <div id="soup-b" style="color: #B07070; font-size: 0.8rem; padding-top: 5px;"></div>
-            </details>
-            <button onclick="nextSoup()" style="margin-top: 15px; width: 100%; font-size: 0.8rem; background: var(--morandi-red-light); color: var(--morandi-red);">换一题</button>
+            <div style="font-weight: bold; color: var(--morandi-red);">🐢 海龟汤</div>
+            <div id="soup-f" style="font-size: 0.85rem; margin-top:10px;"></div>
+            <button onclick="nextSoup()" style="margin-top:10px; width:100%; background:#F1F5F9; color:var(--text-sec); border-radius:8px; padding:5px;">换一碗</button>
         </div>
     </div>
 </div>
 
 <script>
-    // --- 1. 配置 ---
+    // --- 1. 配置 (请填入你的信息) ---
     const SB_URL = 'https://jmkbmedqxcjefmnygyby.supabase.co'; 
     const SB_KEY = 'YOUR_ANON_KEY_HERE'; 
-    let supabase = null;
+    let supabaseClient = null;
 
-    // --- 2. 状态 ---
-    let tasks = JSON.parse(localStorage.getItem('tasks_v8.6')) || [];
-    let tags = JSON.parse(localStorage.getItem('tags_v8.6')) || [
-        {id:'t1', name:'工作', color:'#8E9EAB'}, {id:'t2', name:'生活', color:'#A3B18A'}
-    ];
-    let pomoCount = parseInt(localStorage.getItem('pomo_v8.6')) || 0;
+    // --- 2. 状态变量 ---
+    let tasks = JSON.parse(localStorage.getItem('tasks_v87')) || [];
+    let tags = [{id:'t1', name:'默认', color:'#E08E8E'}];
+    let pomoCount = 0;
     let currentFilter = 'today';
-    let selectedTagId = 't1';
+    let pTime = 1500, pInt = null;
 
-    // --- 3. 初始化 ---
-    function init() {
+    // --- 3. 核心初始化 (防止失效的关键) ---
+    window.onload = function() {
+        console.log("App Initialized");
         updateClock();
         setInterval(updateClock, 1000);
         render();
         renderTags();
         nextSoup();
-    }
+        
+        // 绑定回车事件
+        document.getElementById('t-input').onkeydown = (e) => { if(e.keyCode==13) addTask(); };
+    };
 
-    // --- 4. 云同步功能 (带容错) ---
-    async function initSupabase() {
+    // --- 4. 云同步逻辑 (修正语法) ---
+    async function trySync() {
         const code = document.getElementById('sync-code').value;
-        if (!code || typeof supabasejs === 'undefined') return;
+        if (!code || typeof supabase === 'undefined') return;
         
         try {
-            supabase = supabasejs.createClient(SB_URL, SB_KEY);
-            document.getElementById('sync-status').innerText = '同步中...';
-            const { data, error } = await supabase.from('focus_data').select('*').eq('sync_code', code).single();
+            supabaseClient = supabase.createClient(SB_URL, SB_KEY);
+            document.getElementById('sync-status').innerText = '正在同步...';
+            const { data, error } = await supabaseClient.from('focus_data').select('*').eq('sync_code', code).single();
             if (data) {
                 tasks = data.tasks || [];
-                tags = data.tags || tags;
                 pomoCount = data.pomo || 0;
-                saveLocally(); render(); renderTags();
-                document.getElementById('sync-status').innerText = '同步成功';
+                saveLocally(); render();
+                document.getElementById('sync-status').innerText = '已连接云端';
             } else {
                 document.getElementById('sync-status').innerText = '新口令已创建';
-                saveCloud();
+                save();
             }
-        } catch(e) { 
-            document.getElementById('sync-status').innerText = '配置错误';
-            console.error(e);
-        }
+        } catch(e) { console.error("Sync Error:", e); }
     }
 
-    async function saveCloud() {
+    async function save() {
+        saveLocally();
+        render();
         const code = document.getElementById('sync-code').value;
-        if (!supabase || !code) return;
-        await supabase.from('focus_data').upsert({
-            sync_code: code, tasks, tags, pomo: pomoCount
-        });
-        document.getElementById('cloud-info').innerText = '已云同步 ' + new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+        if (!supabaseClient || !code) return;
+        await supabaseClient.from('focus_data').upsert({ sync_code: code, tasks: tasks, pomo: pomoCount });
+        document.getElementById('cloud-info').innerText = '同步完成';
     }
 
     function saveLocally() {
-        localStorage.setItem('tasks_v8.6', JSON.stringify(tasks));
-        localStorage.setItem('tags_v8.6', JSON.stringify(tags));
-        localStorage.setItem('pomo_v8.6', pomoCount);
+        localStorage.setItem('tasks_v87', JSON.stringify(tasks));
     }
 
-    function save() { saveLocally(); saveCloud(); render(); }
-
-    // --- 5. 页面渲染逻辑 ---
+    // --- 5. UI 渲染函数 ---
     function updateClock() {
         const now = new Date();
         document.getElementById('live-time').innerText = now.toLocaleTimeString('zh-CN', {hour:'2-digit', minute:'2-digit'});
@@ -231,11 +161,14 @@
 
     function renderTags() {
         const container = document.getElementById('tag-selector');
-        container.innerHTML = tags.map(t => `
-            <span class="tag-pill ${selectedTagId === t.id ? 'active' : ''}" 
-                  style="color: ${t.color}" onclick="selectedTagId='${t.id}'; renderTags()">
-                ${t.name} <small onclick="event.stopPropagation(); deleteTag('${t.id}')" style="opacity:0.4">×</small>
-            </span>`).join('');
+        container.innerHTML = tags.map(t => `<span class="tag-pill active" style="color:${t.color}">${t.name}</span>`).join('');
+    }
+
+    function addTask() {
+        const input = document.getElementById('t-input');
+        if(!input.value.trim()) return;
+        tasks.push({id:Date.now(), name:input.value, date:document.getElementById('t-date').value, done:false, desc:''});
+        input.value = ''; save();
     }
 
     function render() {
@@ -243,98 +176,60 @@
         container.innerHTML = '';
         const todayStr = new Date().toISOString().split('T')[0];
 
-        // 统计
-        const todayTasks = tasks.filter(t => t.date === todayStr || (t.date < todayStr && !t.done));
-        document.getElementById('stat-progress').innerText = (todayTasks.length ? Math.round(todayTasks.filter(x=>x.done).length/todayTasks.length*100) : 0) + "%";
-        document.getElementById('stat-pending').innerText = todayTasks.filter(x=>!x.done).length;
-        document.getElementById('stat-focus').innerText = pomoCount;
-
         const filtered = tasks.filter(t => {
-            if (currentFilter === 'today') return t.date === todayStr || (t.date < todayStr && !t.done);
-            if (currentFilter === 'week') {
-                if(!t.date) return false;
-                return Math.abs(new Date(t.date) - new Date()) / 86400000 <= 7;
-            }
+            if (currentFilter === 'today') return t.date === todayStr || (!t.done && t.date < todayStr);
             return true;
         });
 
         filtered.forEach(t => {
-            const tag = tags.find(x => x.id === t.tagId) || {color:'#CCC'};
-            const isOverdue = t.date && t.date < todayStr && !t.done;
             const div = document.createElement('div');
             div.className = 'todo-item';
             div.innerHTML = `
                 <div class="todo-main" onclick="this.parentElement.classList.toggle('active')">
-                    <input type="checkbox" ${t.done?'checked':''} onclick="event.stopPropagation(); toggleDone(${t.id})">
-                    <div style="flex:1; margin-left:12px; border-left:4px solid ${tag.color}; padding-left:10px; ${t.done?'opacity:0.4;text-decoration:line-through':''}">
-                        <div>${t.name} ${isOverdue?'<span style="color:red; font-weight:bold">!</span>':''}</div>
-                        <small style="color:${isOverdue?'red':'#94A3B8'}">${t.date || '随时'}</small>
+                    <input type="checkbox" ${t.done?'checked':''} onclick="event.stopPropagation(); toggleTask(${t.id})">
+                    <div style="flex:1; margin-left:10px; ${t.done?'text-decoration:line-through;opacity:0.5':''}">
+                        <div>${t.name}</div>
+                        <small style="color:#94A3B8">${t.date || '随时'}</small>
                     </div>
+                    <button onclick="event.stopPropagation(); delTask(${t.id})" style="background:none; color:red; font-size:0.7rem;">删除</button>
                 </div>
                 <div class="todo-details">
-                    <textarea placeholder="描述/备注..." onblur="updateTask(${t.id}, 'desc', this.value)">${t.desc||''}</textarea>
-                    <div style="display:flex; gap:10px; margin-top:10px;">
-                        <input type="date" value="${t.date}" onchange="updateTask(${t.id}, 'date', this.value)" style="flex:1">
-                        <select onchange="updateTask(${t.id}, 'tagId', this.value)" style="flex:1">
-                            ${tags.map(tagOpt => `<option value="${tagOpt.id}" ${tagOpt.id===t.tagId?'selected':''}>${tagOpt.name}</option>`).join('')}
-                        </select>
-                        <button onclick="delTask(${t.id})" style="background:#FEE2E2; color:red;">删除</button>
-                    </div>
+                    <textarea style="width:100%;" onblur="updateTask(${t.id}, this.value)">${t.desc||''}</textarea>
                 </div>`;
             container.appendChild(div);
         });
+
+        // 统计
+        document.getElementById('stat-pending').innerText = tasks.filter(x=>!x.done).length;
+        document.getElementById('stat-focus').innerText = pomoCount;
         renderCalendar();
     }
 
     function renderCalendar() {
         const grid = document.getElementById('calendar-grid'); grid.innerHTML = '';
-        const now = new Date();
-        const days = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+        const days = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate();
         for(let i=1; i<=days; i++) {
-            const dStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(i).padStart(2,'0')}`;
-            const dayTasks = tasks.filter(t => t.date === dStr);
-            grid.innerHTML += `
-                <div class="cal-day">
-                    <span style="${i===now.getDate()?'color:var(--morandi-red);font-weight:bold':''}">${i}</span>
-                    <div class="cal-pop">${dayTasks.length ? dayTasks.map(t=>'• '+t.name).join('<br>') : '无事项'}</div>
-                    ${dayTasks.length ? `<div style="width:4px; height:4px; background:var(--morandi-red); border-radius:50%; margin-top:2px;"></div>` : ''}
-                </div>`;
+            grid.innerHTML += `<div class="cal-day">${i}</div>`;
         }
     }
 
-    // --- 6. 交互功能 ---
-    function addTask() {
-        const input = document.getElementById('t-input');
-        if(!input.value.trim()) return;
-        tasks.push({id:Date.now(), name:input.value, date:document.getElementById('t-date').value||"", tagId:selectedTagId, desc:"", done:false});
-        input.value = ""; save();
-    }
-    function toggleDone(id) { const t = tasks.find(x=>x.id===id); t.done=!t.done; save(); }
+    // --- 6. 功能函数 ---
+    function toggleTask(id) { const t = tasks.find(x=>x.id===id); t.done=!t.done; save(); }
     function delTask(id) { tasks = tasks.filter(x=>x.id!==id); save(); }
-    function updateTask(id, k, v) { const t = tasks.find(x=>x.id===id); if(t) t[k]=v; save(); }
-    function createNewTag() {
-        const n = document.getElementById('new-tag-name').value;
-        if(!n) return;
-        tags.push({id:'t'+Date.now(), name:n, color:document.getElementById('new-tag-color').value});
-        document.getElementById('new-tag-name').value=''; save(); renderTags();
-    }
-    function deleteTag(id) { tags=tags.filter(t=>t.id!==id); save(); renderTags(); }
+    function updateTask(id, val) { const t = tasks.find(x=>x.id===id); t.desc=val; save(); }
     function setFilter(f, el) { currentFilter=f; document.querySelectorAll('.nav-item').forEach(i=>i.classList.remove('active')); el.classList.add('active'); render(); }
-
-    // 番茄钟
-    let pTime = 1500, pInt = null;
-    function resetPomo() { pTime = document.getElementById('p-min').value*60; updatePomoDisp(); clearInterval(pInt); pInt=null; document.getElementById('p-start').innerText="开始"; }
+    
     function togglePomo() {
-        if(pInt) { clearInterval(pInt); pInt=null; document.getElementById('p-start').innerText="继续"; }
-        else { pInt = setInterval(()=>{pTime--; updatePomoDisp(); if(pTime<=0){clearInterval(pInt); pomoCount++; save(); resetPomo(); alert('专注时间到！');}},1000); document.getElementById('p-start').innerText="暂停"; }
+        if(pInt) { clearInterval(pInt); pInt=null; document.getElementById('p-btn').innerText="继续"; }
+        else { 
+            pInt = setInterval(() => { pTime--; updatePDisp(); if(pTime<=0){ clearInterval(pInt); pomoCount++; save(); alert("专注完成"); pTime=1500; updatePDisp(); } }, 1000); 
+            document.getElementById('p-btn').innerText="暂停";
+        }
     }
-    function updatePomoDisp() { const m=Math.floor(pTime/60), s=pTime%60; document.getElementById('timer-val').innerText=`${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`; }
+    function updatePDisp() { const m=Math.floor(pTime/60), s=pTime%60; document.getElementById('timer-val').innerText=`${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`; }
 
-    // 海龟汤
-    const soups = [{f:"男子点海龟汤喝了一口自杀了。", b:"由于海难曾吃过同伴肉骗说是海龟汤。"}, {f:"沙漠手里有半根火柴。", b:"热气球超重抽签自杀。"}, {f:"水里的男人没被淹死却死于窒息。", b:"他在潜水艇里。"}];
-    function nextSoup() { const s=soups[Math.floor(Math.random()*soups.length)]; document.getElementById('soup-f').innerText=s.f; document.getElementById('soup-b').innerText=s.b; }
-
-    init();
+    const soups = [{f:"沙漠里有半根火柴。", b:"抽签。"}, {f:"海龟汤。", b:"人肉。"}];
+    function nextSoup() { document.getElementById('soup-f').innerText = soups[Math.floor(Math.random()*soups.length)].f; }
 </script>
 </body>
 </html>
