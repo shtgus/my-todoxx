@@ -220,7 +220,7 @@
 
     .composer {
       display: grid;
-      grid-template-columns: minmax(0, 1.5fr) 145px 128px 92px;
+      grid-template-columns: minmax(0, 1.5fr) 145px 128px 160px 92px;
       gap: 10px;
       padding: 10px;
       background: var(--panel-strong);
@@ -432,6 +432,7 @@
             <option value="medium" selected>普通</option>
             <option value="low">低优先级</option>
           </select>
+          <input class="field" id="dueDateInput" type="date" aria-label="完成时间" required />
           <button class="add-btn" type="submit">添加</button>
         </form>
 
@@ -470,6 +471,12 @@
 
     const $ = (selector) => document.querySelector(selector);
     const todayISO = () => new Date().toISOString().slice(0, 10);
+    const getDueDate = (todo) => todo.dueDate || todo.date || todayISO();
+
+    function formatDueDate(dateValue) {
+      if (dateValue === todayISO()) return "今天";
+      return dateValue;
+    }
 
     function saveTodos() {
       localStorage.setItem(storageKey, JSON.stringify(todos));
@@ -487,7 +494,7 @@
     }
 
     function getVisibleTodos() {
-      if (activeFilter === "today") return todos.filter((todo) => todo.date === todayISO() && !todo.done);
+      if (activeFilter === "today") return todos.filter((todo) => getDueDate(todo) === todayISO() && !todo.done);
       if (activeFilter === "high") return todos.filter((todo) => todo.priority === "high" && !todo.done);
       if (activeFilter === "done") return todos.filter((todo) => todo.done);
       return todos;
@@ -496,7 +503,7 @@
     function updateStats() {
       const done = todos.filter((todo) => todo.done).length;
       const pending = todos.length - done;
-      const todayCount = todos.filter((todo) => todo.date === todayISO() && !todo.done).length;
+      const todayCount = todos.filter((todo) => getDueDate(todo) === todayISO() && !todo.done).length;
       const highCount = todos.filter((todo) => todo.priority === "high" && !todo.done).length;
       const rate = todos.length ? Math.round((done / todos.length) * 100) : 0;
 
@@ -522,6 +529,7 @@
 
       list.innerHTML = visibleTodos.map((todo) => {
         const priority = priorityMap[todo.priority] || priorityMap.medium;
+        const dueDate = getDueDate(todo);
         return `
           <article class="todo-item ${todo.done ? "done" : ""}">
             <input class="check" type="checkbox" ${todo.done ? "checked" : ""} aria-label="切换任务状态" data-action="toggle" data-id="${todo.id}" />
@@ -530,7 +538,7 @@
               <div class="meta">
                 <span class="tag">${escapeHTML(todo.category)}</span>
                 <span class="tag ${priority.className}">${priority.label}</span>
-                <span class="tag">${todo.date === todayISO() ? "今天" : todo.date}</span>
+                <span class="tag">完成：${formatDueDate(dueDate)}</span>
               </div>
             </div>
             <button class="delete-btn" type="button" data-action="delete" data-id="${todo.id}">删除</button>
@@ -561,11 +569,13 @@
         title,
         category: $("#categoryInput").value,
         priority: $("#priorityInput").value,
+        dueDate: $("#dueDateInput").value,
         date: todayISO(),
         done: false
       });
 
       $("#taskInput").value = "";
+      $("#dueDateInput").value = todayISO();
       saveTodos();
       renderTodos();
     });
@@ -600,6 +610,8 @@
       saveTodos();
       renderTodos();
     });
+
+    $("#dueDateInput").value = todayISO();
 
     $("#dailyNote").value = localStorage.getItem(noteKey) || "";
     $("#dailyNote").addEventListener("input", (event) => localStorage.setItem(noteKey, event.target.value));
