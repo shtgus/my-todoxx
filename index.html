@@ -1,476 +1,624 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <title>专注清单 Pro - 全功能云同步版</title>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <style>
-        :root {
-            --bg: #F5F7FA; --card: #FFFFFF; --text-main: #334155; --text-sec: #64748B;
-            --morandi-red: #E08E8E; --morandi-red-light: #FDF2F2; --border: #E5E7EB;
-            --shadow: 0 4px 20px rgba(0,0,0,0.04); --radius: 20px;
-            --douban-green: #00B51D; --weread-blue: #1B88EE;
-        }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>每日待办｜海外展会市场</title>
+  <style>
+    :root {
+      --bg: #f6f3ee;
+      --panel: rgba(255, 255, 255, 0.78);
+      --panel-strong: #ffffff;
+      --ink: #1f2933;
+      --muted: #7b8794;
+      --line: #e8e1d7;
+      --accent: #b7795f;
+      --accent-dark: #8f563f;
+      --accent-soft: #f0dfd4;
+      --green: #6f8f72;
+      --shadow: 0 24px 70px rgba(63, 45, 33, 0.12);
+      --radius-lg: 28px;
+      --radius-md: 18px;
+      --radius-sm: 12px;
+    }
 
-        body {
-            font-family: 'PingFang SC', 'Inter', system-ui, sans-serif;
-            background: var(--bg); color: var(--text-main);
-            margin: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden;
-        }
+    * { box-sizing: border-box; }
 
-        .sync-banner { 
-            background: #334155; color: white; padding: 6px 24px; 
-            display: flex; justify-content: space-between; align-items: center; 
-            font-size: 0.75rem; z-index: 1000; box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        .sync-banner input { 
-            background: rgba(255,255,255,0.1); border: 1px solid #555; 
-            color: white; border-radius: 4px; padding: 2px 8px; outline: none; width: 120px;
-        }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(183, 121, 95, 0.18), transparent 34rem),
+        linear-gradient(135deg, #fbfaf8 0%, var(--bg) 52%, #efe7dc 100%);
+    }
 
-        .app-shell {
-            display: grid; grid-template-columns: 280px 1fr 320px;
-            gap: 24px; flex: 1; padding: 24px; box-sizing: border-box; overflow: hidden;
-        }
+    button, input, textarea, select { font: inherit; }
 
-        .panel {
-            background: var(--card); border-radius: var(--radius);
-            box-shadow: var(--shadow); display: flex; flex-direction: column;
-            overflow: hidden; border: 1px solid var(--border);
-        }
+    .page {
+      width: min(1180px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 34px 0;
+    }
 
-        /* 侧边栏样式 */
-        .nav-group { padding-bottom: 10px; border-bottom: 1px solid #F1F5F9; }
-        .nav-item { 
-            padding: 12px 20px; margin: 4px 16px; cursor: pointer; border-radius: 12px; 
-            font-size: 0.9rem; color: var(--text-sec); display: flex; align-items: center; gap: 12px;
-        }
-        .nav-item.active { background: var(--morandi-red-light); color: var(--morandi-red); font-weight: 600; }
-        
-        /* 灵感存档样式优化 - Flomo Tree */
-        .archive-section { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
-        .archive-title { padding: 16px 24px 8px; font-size: 0.85rem; font-weight: bold; color: var(--text-main); opacity: 0.8; }
-        .tag-tree { flex: 1; overflow-y: auto; padding: 0 10px; }
-        .tag-node { 
-            font-size: 0.8rem; padding: 6px 15px; cursor: pointer; border-radius: 8px; 
-            color: var(--text-sec); margin: 2px 8px; transition: 0.2s;
-            display: flex; justify-content: space-between; align-items: center;
-        }
-        .tag-node:hover { background: #F1F5F9; color: var(--weread-blue); }
-        .tag-node.active { color: var(--weread-blue); font-weight: bold; background: #E3F2FD; }
-        .tag-count { font-size: 0.7rem; opacity: 0.5; font-weight: normal; }
-        .sub-tag { padding-left: 30px; font-size: 0.75rem; opacity: 0.8; }
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 310px;
+      gap: 18px;
+      align-items: stretch;
+      margin-bottom: 18px;
+    }
 
-        /* 灵感内容卡片样式 */
-        .memo-card { 
-            background: #F8FAFC; border-radius: 12px; padding: 16px; margin-bottom: 12px; 
-            font-size: 0.85rem; line-height: 1.6; position: relative; border: 1px solid transparent; 
-            transition: 0.3s; cursor: pointer;
-        }
-        .memo-card:hover { border-color: var(--weread-blue); background: #FFF; box-shadow: var(--shadow); }
-        .memo-card .del-btn { position: absolute; right: 12px; top: 12px; opacity: 0; cursor: pointer; color: #CBD5E1; font-size: 1.2rem; padding: 0 5px; }
-        .memo-card:hover .del-btn { opacity: 1; }
-        .memo-card .del-btn:hover { color: var(--morandi-red); }
-        .memo-tag-link { color: var(--weread-blue); margin-right: 5px; text-decoration: none; font-weight: 500; }
+    .hero-card,
+    .side-card,
+    .workspace {
+      border: 1px solid rgba(232, 225, 215, 0.9);
+      background: var(--panel);
+      backdrop-filter: blur(20px);
+      box-shadow: var(--shadow);
+    }
 
-        .stats-bar { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px; }
-        .stat-card { background: #fff; padding: 18px; border-radius: 16px; text-align: center; border: 1px solid var(--border); }
-        .stat-val { font-size: 1.4rem; font-weight: 700; color: var(--morandi-red); }
+    .hero-card {
+      position: relative;
+      overflow: hidden;
+      min-height: 230px;
+      border-radius: var(--radius-lg);
+      padding: 34px;
+    }
 
-        .input-area { background: white; padding: 16px; border-radius: 16px; border: 1px solid var(--border); margin-bottom: 24px; }
-        .input-row { display: flex; gap: 12px; align-items: center; margin-bottom: 12px; }
-        .input-row input[type="text"] { flex: 1; border: none; outline: none; font-size: 1rem; }
-        
-        .tag-pill { padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; cursor: pointer; border: 1px solid ; transition: 0.2s; background: #F1F5F9; margin-right: 5px; margin-bottom: 5px; display: inline-block; }
-        .tag-pill.active { border-color: currentColor; background: white; font-weight: bold; }
+    .hero-card::after {
+      content: "";
+      position: absolute;
+      right: -90px;
+      top: -110px;
+      width: 280px;
+      height: 280px;
+      border-radius: 50%;
+      background: rgba(183, 121, 95, 0.13);
+    }
 
-        .todo-item { border-bottom: 1px solid #F1F5F9; }
-        .todo-main { display: flex; align-items: center; padding: 16px; cursor: pointer; }
-        .todo-main:hover { background: #FAFBFC; }
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      color: var(--accent-dark);
+      background: var(--accent-soft);
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+    }
 
-        .pomo-timer { text-align: center; padding: 24px; }
-        .pomo-setting { margin-top: 10px; font-size: 0.75rem; color: var(--text-sec); }
-        .pomo-setting input { width: 45px; border: 1px solid #EEE; border-radius: 4px; text-align: center; }
+    h1 {
+      margin: 22px 0 12px;
+      font-size: clamp(36px, 5vw, 62px);
+      line-height: 1.02;
+      letter-spacing: -0.06em;
+    }
 
-        button { background: var(--morandi-red); color: white; border: none; padding: 8px 16px; border-radius: 10px; cursor: pointer; transition: 0.2s; }
-        button:hover { opacity: 0.9; }
-        .btn-ghost { background: #F1F5F9; color: var(--text-sec); }
+    .hero p {
+      width: min(620px, 100%);
+      margin: 0;
+      color: var(--muted);
+      font-size: 16px;
+      line-height: 1.8;
+    }
 
-        .scroll { overflow-y: auto; scrollbar-width: none; }
-        .scroll::-webkit-scrollbar { display: none; }
-        textarea { width: 100%; border: 1px solid var(--border); border-radius: 12px; padding: 12px; font-size: 0.85rem; resize: none; outline: none; box-sizing: border-box; }
+    .side-card {
+      border-radius: var(--radius-lg);
+      padding: 28px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 24px;
+    }
 
-        #note-editor { display: none; margin-top: 10px; }
-    </style>
+    .date-block time {
+      display: block;
+      font-size: 42px;
+      font-weight: 750;
+      letter-spacing: -0.04em;
+    }
+
+    .date-block span {
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .quote {
+      margin: 0;
+      padding: 18px;
+      color: var(--accent-dark);
+      background: #fff8f4;
+      border: 1px solid #f0dfd4;
+      border-radius: var(--radius-md);
+      line-height: 1.65;
+    }
+
+    .workspace {
+      display: grid;
+      grid-template-columns: 310px minmax(0, 1fr);
+      gap: 0;
+      min-height: 610px;
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+    }
+
+    .sidebar {
+      padding: 24px;
+      border-right: 1px solid var(--line);
+      background: rgba(255, 252, 248, 0.64);
+    }
+
+    .section-title {
+      margin: 0 0 14px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+    }
+
+    .stats {
+      display: grid;
+      gap: 10px;
+      margin-bottom: 26px;
+    }
+
+    .stat {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px;
+      background: var(--panel-strong);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-md);
+    }
+
+    .stat strong { font-size: 28px; letter-spacing: -0.04em; }
+    .stat span { color: var(--muted); font-size: 13px; }
+
+    .filters { display: grid; gap: 8px; }
+
+    .filter-btn {
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border: 0;
+      padding: 13px 14px;
+      color: var(--ink);
+      background: transparent;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: 0.2s ease;
+    }
+
+    .filter-btn:hover,
+    .filter-btn.active {
+      background: var(--panel-strong);
+      box-shadow: inset 0 0 0 1px var(--line);
+    }
+
+    .count-pill {
+      min-width: 28px;
+      padding: 3px 8px;
+      color: var(--accent-dark);
+      background: var(--accent-soft);
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 800;
+      text-align: center;
+    }
+
+    .main {
+      display: flex;
+      flex-direction: column;
+      padding: 24px;
+    }
+
+    .composer {
+      display: grid;
+      grid-template-columns: minmax(0, 1.5fr) 145px 128px 160px 92px;
+      gap: 10px;
+      padding: 10px;
+      background: var(--panel-strong);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-md);
+      margin-bottom: 16px;
+    }
+
+    .field {
+      width: 100%;
+      border: 0;
+      outline: 0;
+      padding: 13px 12px;
+      color: var(--ink);
+      background: #faf8f5;
+      border-radius: var(--radius-sm);
+    }
+
+    .field:focus {
+      box-shadow: 0 0 0 2px rgba(183, 121, 95, 0.25);
+      background: #fff;
+    }
+
+    .add-btn {
+      border: 0;
+      color: white;
+      background: var(--accent);
+      border-radius: var(--radius-sm);
+      font-weight: 800;
+      cursor: pointer;
+      transition: 0.2s ease;
+    }
+
+    .add-btn:hover { background: var(--accent-dark); transform: translateY(-1px); }
+
+    .toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .toolbar h2 { margin: 0; font-size: 20px; letter-spacing: -0.02em; }
+
+    .clear-btn {
+      border: 1px solid var(--line);
+      padding: 9px 12px;
+      color: var(--muted);
+      background: rgba(255, 255, 255, 0.62);
+      border-radius: 999px;
+      cursor: pointer;
+    }
+
+    .todo-list {
+      display: grid;
+      gap: 10px;
+      padding: 2px;
+      overflow: auto;
+    }
+
+    .todo-item {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      gap: 12px;
+      align-items: start;
+      padding: 16px;
+      background: rgba(255, 255, 255, 0.82);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-md);
+      transition: 0.2s ease;
+    }
+
+    .todo-item:hover { transform: translateY(-1px); box-shadow: 0 12px 30px rgba(63, 45, 33, 0.08); }
+    .todo-item.done { opacity: 0.62; }
+    .todo-item.done .todo-title { text-decoration: line-through; color: var(--muted); }
+
+    .check {
+      width: 22px;
+      height: 22px;
+      margin-top: 2px;
+      accent-color: var(--green);
+      cursor: pointer;
+    }
+
+    .todo-title {
+      margin: 0 0 8px;
+      font-weight: 760;
+      line-height: 1.45;
+      word-break: break-word;
+    }
+
+    .meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .tag {
+      padding: 4px 8px;
+      background: #f6efe8;
+      border-radius: 999px;
+    }
+
+    .priority-high { color: #a94737; background: #fae5de; }
+    .priority-medium { color: #8f6b2f; background: #f6ead0; }
+    .priority-low { color: #4f7553; background: #e4efdf; }
+
+    .delete-btn {
+      border: 0;
+      padding: 8px 10px;
+      color: var(--muted);
+      background: transparent;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+
+    .delete-btn:hover { color: #a94737; background: #fae5de; }
+
+    .notes {
+      margin-top: 16px;
+      padding: 16px;
+      background: #fff8f4;
+      border: 1px solid #f0dfd4;
+      border-radius: var(--radius-md);
+    }
+
+    textarea.field {
+      min-height: 84px;
+      resize: vertical;
+      line-height: 1.65;
+    }
+
+    .empty {
+      padding: 58px 18px;
+      text-align: center;
+      color: var(--muted);
+      border: 1px dashed var(--line);
+      border-radius: var(--radius-md);
+      background: rgba(255, 255, 255, 0.45);
+    }
+
+    @media (max-width: 900px) {
+      .hero,
+      .workspace { grid-template-columns: 1fr; }
+      .sidebar { border-right: 0; border-bottom: 1px solid var(--line); }
+      .composer { grid-template-columns: 1fr 1fr; }
+      .add-btn { min-height: 46px; }
+    }
+
+    @media (max-width: 560px) {
+      .page { width: min(100% - 20px, 1180px); padding: 10px 0; }
+      .hero-card, .side-card, .main, .sidebar { padding: 18px; }
+      .composer { grid-template-columns: 1fr; }
+      .todo-item { grid-template-columns: auto minmax(0, 1fr); }
+      .delete-btn { grid-column: 2; justify-self: start; padding-left: 0; }
+    }
+  </style>
 </head>
 <body>
-
-<div class="sync-banner">
-    <div>状态: <span id="sync-status">本地模式</span></div>
-    <div>
-        同步口令: <input type="password" id="sync-code" placeholder="输入口令同步" onblur="initSupabase()">
-        <span id="cloud-info" style="margin-left:10px; opacity:0.7"></span>
-    </div>
-</div>
-
-<div class="app-shell">
-    <div class="panel">
-        <div style="padding: 24px; border-bottom: 1px solid #F1F5F9;">
-            <div id="live-time" style="font-size: 1.8rem; font-weight: 300; color: var(--morandi-red);"></div>
-            <div id="live-date" style="color: var(--text-sec); font-size: 0.85rem;"></div>
+  <main class="page">
+    <section class="hero" aria-label="今日概览">
+      <div class="hero-card">
+        <span class="eyebrow">✦ 海外展会市场 · Daily Desk</span>
+        <h1>把繁杂工作，收进一张清单。</h1>
+        <p>适合展会海外市场的每日待办页：客户跟进、展商资料、邮件邀约、物流物料、内容发布与复盘都可以轻量记录，并自动保存在当前浏览器。</p>
+      </div>
+      <aside class="side-card">
+        <div class="date-block">
+          <time id="clock">--:--</time>
+          <span id="todayText">今天</span>
         </div>
-        <div class="nav-group">
-            <div class="nav-item active" id="nav-today" onclick="setFilter('today', this)">今日/逾期</div>
-            <div class="nav-item" id="nav-all" onclick="setFilter('all', this)">所有事项</div>
-        </div>
-        
-        <div class="archive-section">
-            <div class="archive-title">✨ 灵感存档 (flomo)</div>
-            <div id="tag-tree-container" class="tag-tree scroll"></div>
-        </div>
-    </div>
+        <p class="quote">今日重点：先完成最能推动展会转化的一件事，再处理零散消息。</p>
+      </aside>
+    </section>
 
-    <div style="display: flex; flex-direction: column;">
-        <div class="stats-bar">
-            <div class="stat-card"><div id="stat-progress" class="stat-val">0%</div><div style="font-size:0.7rem; color:#94A3B8;">今日进度</div></div>
-            <div class="stat-card"><div id="stat-pending" class="stat-val">0</div><div style="font-size:0.7rem; color:#94A3B8;">待办任务</div></div>
-            <div class="stat-card"><div id="stat-focus" class="stat-val">0</div><div style="font-size:0.7rem; color:#94A3B8;">已获番茄</div></div>
+    <section class="workspace" aria-label="每日待办应用">
+      <aside class="sidebar">
+        <p class="section-title">Progress</p>
+        <div class="stats" aria-label="任务统计">
+          <div class="stat"><span>待完成</span><strong id="pendingStat">0</strong></div>
+          <div class="stat"><span>已完成</span><strong id="doneStat">0</strong></div>
+          <div class="stat"><span>完成率</span><strong id="rateStat">0%</strong></div>
         </div>
 
-        <div class="input-area" id="main-input-area">
-            <div class="input-row">
-                <input type="text" id="t-input" placeholder="输入任务名称，按回车创建..." onkeydown="if(event.keyCode==13) addTask()">
-                <input type="date" id="t-date" style="border:none; color:var(--text-sec); font-size:0.8rem;">
-            </div>
-            <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px;" id="tag-selector"></div>
-            <div style="display: flex; gap: 8px; border-top: 1px solid #F1F5F9; padding-top: 10px;">
-                <input type="text" id="new-tag-name" placeholder="新标签名" style="width:80px; font-size:0.7rem; border:1px solid #EEE; padding:2px 5px; border-radius:4px;">
-                <input type="color" id="new-tag-color" value="#E08E8E" style="border:none; height:24px; width:24px; background:none; cursor:pointer;">
-                <button onclick="createNewTag()" style="padding: 2px 10px; font-size: 0.7rem;">创建标签</button>
-            </div>
+        <p class="section-title">Views</p>
+        <div class="filters" id="filters">
+          <button class="filter-btn active" data-filter="all">全部任务 <span class="count-pill" id="countAll">0</span></button>
+          <button class="filter-btn" data-filter="today">今日事项 <span class="count-pill" id="countToday">0</span></button>
+          <button class="filter-btn" data-filter="high">高优先级 <span class="count-pill" id="countHigh">0</span></button>
+          <button class="filter-btn" data-filter="done">已完成 <span class="count-pill" id="countDone">0</span></button>
+        </div>
+      </aside>
+
+      <section class="main">
+        <form class="composer" id="todoForm">
+          <input class="field" id="taskInput" autocomplete="off" placeholder="例如：确认德国代理商邀约名单" required />
+          <select class="field" id="categoryInput" aria-label="任务类型">
+            <option>客户跟进</option>
+            <option>展会筹备</option>
+            <option>内容推广</option>
+            <option>物料物流</option>
+            <option>数据复盘</option>
+          </select>
+          <select class="field" id="priorityInput" aria-label="优先级">
+            <option value="high">高优先级</option>
+            <option value="medium" selected>普通</option>
+            <option value="low">低优先级</option>
+          </select>
+          <input class="field" id="dueDateInput" type="date" aria-label="完成时间" required />
+          <button class="add-btn" type="submit">添加</button>
+        </form>
+
+        <div class="toolbar">
+          <h2 id="listTitle">全部任务</h2>
+          <button class="clear-btn" id="clearDoneBtn" type="button">清除已完成</button>
         </div>
 
-        <div class="panel scroll" style="flex: 1; padding: 20px;" id="list-container"></div>
-    </div>
+        <div class="todo-list" id="todoList" aria-live="polite"></div>
 
-    <div style="display: flex; flex-direction: column; gap: 24px;">
-        <div class="panel pomo-timer">
-            <div id="timer-val" style="font-size: 3.5rem; font-weight: 200; color: var(--morandi-red);">25:00</div>
-            <div class="pomo-setting">时长: <input type="number" id="p-min" value="25" onchange="resetPomo()"> 分钟</div>
-            <div style="display: flex; gap: 10px; margin-top: 20px;">
-                <button id="p-start" onclick="togglePomo()" style="flex:1">开始专注</button>
-                <button onclick="resetPomo()" class="btn-ghost">重置</button>
-            </div>
+        <div class="notes">
+          <p class="section-title">Daily Note</p>
+          <textarea class="field" id="dailyNote" placeholder="记录今日沟通要点、展会线索、需要明天继续推进的事项……"></textarea>
         </div>
+      </section>
+    </section>
+  </main>
 
-        <div class="panel scroll" style="flex: 1; padding: 20px;">
-            <div style="font-weight: bold; color: var(--weread-blue); margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center;">
-                <span id="note-type-label">📖 灵感回顾</span>
-                <button onclick="toggleNoteEditor()" style="padding: 2px 8px; font-size: 0.65rem; background: var(--weread-blue);">+ 录入笔记</button>
-            </div>
-            
-            <div id="note-display">
-                <div id="book-card" style="display: flex; flex-direction: column; gap: 12px;">
-                    <div style="font-size: 1.1rem; font-weight: bold; color: var(--text-main);" id="book-title"></div>
-                    <div style="font-size: 0.75rem; color: var(--text-sec);" id="book-author"></div>
-                    <div id="book-desc" style="font-size: 0.8rem; line-height: 1.6; color: var(--text-main); background: #F8FAFC; padding: 12px; border-radius: 12px; border-left: 4px solid var(--weread-blue); min-height: 80px;"></div>
-                </div>
-                <button onclick="nextBook()" style="margin-top: 15px; width: 100%; font-size: 0.8rem; background: #E3F2FD; color: var(--weread-blue);">换一个</button>
-            </div>
-
-            <div id="note-editor">
-                <textarea id="n-content" placeholder="记录想法，使用 #标签 或 #父/子 自动分类..." style="height:160px; font-size:0.8rem; margin-bottom:12px;"></textarea>
-                <div style="display:flex; gap:10px;">
-                    <button onclick="saveNote()" style="flex:1; background:var(--weread-blue); font-size:0.75rem;">保存存档</button>
-                    <button onclick="toggleNoteEditor()" class="btn-ghost" style="flex:1; font-size:0.75rem;">取消</button>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<script>
-    const SB_URL = 'https://jmkbmedqxcjefmnygyby.supabase.co'; 
-    const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Impta2JtZWRxeGNqZWZtbnlneWJ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAwNjEyMTgsImV4cCI6MjA4NTYzNzIxOH0.x2BbeuxwPe8MEop7hzvZo0fZ9LRmNm3Jj5JgAA0MzXQ'; 
-    let supabaseClient = null;
-
-    const bookLibrary = [
-        {title: "深度工作", author: "卡尔·纽波特", desc: "深度专注是碎片化时代唯一的竞争优势。"},
-        {title: "纳瓦尔宝典", author: "纳瓦尔", desc: "把自己产品化。"}
-    ];
-
-    let tags = JSON.parse(localStorage.getItem('tags_v88')) || [{id:'t1', name:'工作', color:'#8E9EAB'}];
-    let tasks = JSON.parse(localStorage.getItem('tasks_v88')) || [];
-    let myNotes = JSON.parse(localStorage.getItem('my_notes_v88')) || [];
-    let pomoCount = parseInt(localStorage.getItem('pomo_v88')) || 0;
-    
-    let currentFilter = 'today'; 
-    let selectedTagId = 't1';
-
-    window.onload = function() {
-        updateClock(); setInterval(updateClock, 1000);
-        renderTags(); render(); renderTagTree(); nextBook();
+  <script>
+    const storageKey = "expo_market_daily_todos";
+    const noteKey = "expo_market_daily_note";
+    const listTitleMap = {
+      all: "全部任务",
+      today: "今日事项",
+      high: "高优先级",
+      done: "已完成"
+    };
+    const priorityMap = {
+      high: { label: "高", className: "priority-high" },
+      medium: { label: "普通", className: "priority-medium" },
+      low: { label: "低", className: "priority-low" }
     };
 
-    // --- 同步逻辑 ---
-    async function initSupabase() {
-        const code = document.getElementById('sync-code').value;
-        if (!code || typeof supabase === 'undefined') return;
-        try {
-            supabaseClient = supabase.createClient(SB_URL, SB_KEY);
-            const { data } = await supabaseClient.from('focus_data').select('*').eq('sync_code', code).single();
-            if (data) {
-                tasks = data.tasks || []; myNotes = data.notes || []; pomoCount = data.pomo || 0;
-                saveLocally(); render(); renderTagTree();
-                document.getElementById('sync-status').innerText = '云端连接成功';
-            } else { saveCloud(); }
-        } catch(e) { console.error(e); }
+    let activeFilter = "all";
+    let todos = JSON.parse(localStorage.getItem(storageKey) || "[]");
+
+    const $ = (selector) => document.querySelector(selector);
+    const todayISO = () => new Date().toISOString().slice(0, 10);
+    const getDueDate = (todo) => todo.dueDate || todo.date || todayISO();
+
+    function formatDueDate(dateValue) {
+      if (dateValue === todayISO()) return "今天";
+      return dateValue;
     }
 
-    async function saveCloud() {
-        const code = document.getElementById('sync-code').value;
-        if (!supabaseClient || !code) return;
-        await supabaseClient.from('focus_data').upsert({ sync_code: code, tasks, tags, pomo: pomoCount, notes: myNotes });
+    function saveTodos() {
+      localStorage.setItem(storageKey, JSON.stringify(todos));
     }
 
-    function saveLocally() {
-        localStorage.setItem('tasks_v88', JSON.stringify(tasks));
-        localStorage.setItem('my_notes_v88', JSON.stringify(myNotes));
-        localStorage.setItem('pomo_v88', pomoCount);
-        localStorage.setItem('tags_v88', JSON.stringify(tags));
+    function renderClock() {
+      const now = new Date();
+      $("#clock").textContent = now.toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" });
+      $("#todayText").textContent = now.toLocaleDateString("zh-CN", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+        weekday: "long"
+      });
     }
 
-    function save() { saveLocally(); saveCloud(); render(); renderTagTree(); }
-
-    function parseTags(text) {
-        const regex = /#([^\s#]+)/g;
-        const tagsFound = [];
-        let match;
-        while ((match = regex.exec(text)) !== null) {
-            tagsFound.push(match[1]);
-        }
-        return tagsFound;
+    function getVisibleTodos() {
+      if (activeFilter === "today") return todos.filter((todo) => getDueDate(todo) === todayISO() && !todo.done);
+      if (activeFilter === "high") return todos.filter((todo) => todo.priority === "high" && !todo.done);
+      if (activeFilter === "done") return todos.filter((todo) => todo.done);
+      return todos;
     }
 
-    // --- 渲染左侧标签树（含数量统计） ---
-    function renderTagTree() {
-        const container = document.getElementById('tag-tree-container');
-        const tagMap = {}; 
-        const tagCounts = {};
+    function updateStats() {
+      const done = todos.filter((todo) => todo.done).length;
+      const pending = todos.length - done;
+      const todayCount = todos.filter((todo) => getDueDate(todo) === todayISO() && !todo.done).length;
+      const highCount = todos.filter((todo) => todo.priority === "high" && !todo.done).length;
+      const rate = todos.length ? Math.round((done / todos.length) * 100) : 0;
 
-        myNotes.forEach(memo => {
-            const mTags = (memo.parsedTags && memo.parsedTags.length > 0) ? memo.parsedTags : ["未分类"];
-            mTags.forEach(tag => {
-                tagCounts[tag] = (tagCounts[tag] || 0) + 1;
-                if (tag.includes('/')) {
-                    const [parent, child] = tag.split('/');
-                    if (!tagMap[parent]) tagMap[parent] = new Set();
-                    tagMap[parent].add(child);
-                } else {
-                    if (!tagMap[tag]) tagMap[tag] = new Set();
-                }
-            });
-        });
-
-        let html = '';
-        Object.keys(tagMap).sort().forEach(parent => {
-            const isActive = currentFilter === parent;
-            const count = tagCounts[parent] || 0;
-            html += `
-                <div class="tag-node ${isActive?'active':''}" onclick="setFilter('${parent}', this, true)">
-                    <span># ${parent}</span>
-                    <span class="tag-count">${count}</span>
-                </div>`;
-            
-            tagMap[parent].forEach(child => {
-                const fullTag = `${parent}/${child}`;
-                const isSubActive = currentFilter === fullTag;
-                const subCount = tagCounts[fullTag] || 0;
-                html += `
-                    <div class="tag-node sub-tag ${isSubActive?'active':''}" onclick="setFilter('${fullTag}', this, true)">
-                        <span>└ ${child}</span>
-                        <span class="tag-count">${subCount}</span>
-                    </div>`;
-            });
-        });
-
-        container.innerHTML = html || '<div style="text-align:center; font-size:0.7rem; color:#999; margin-top:10px;">输入#标签自动分类</div>';
+      $("#pendingStat").textContent = pending;
+      $("#doneStat").textContent = done;
+      $("#rateStat").textContent = `${rate}%`;
+      $("#countAll").textContent = todos.length;
+      $("#countToday").textContent = todayCount;
+      $("#countHigh").textContent = highCount;
+      $("#countDone").textContent = done;
     }
 
-    // --- 主渲染逻辑 ---
-    function render() {
-        const container = document.getElementById('list-container');
-        container.innerHTML = '';
-        const inputArea = document.getElementById('main-input-area');
-        
-        if (currentFilter !== 'today' && currentFilter !== 'all' && currentFilter !== 'week') {
-            inputArea.style.display = 'none'; 
-            
-            const filteredMemos = myNotes.filter(m => {
-                const effectiveTags = (m.parsedTags && m.parsedTags.length > 0) ? m.parsedTags : ["未分类"];
-                return effectiveTags.some(t => t === currentFilter || t.startsWith(currentFilter + '/'));
-            });
+    function renderTodos() {
+      const list = $("#todoList");
+      const visibleTodos = getVisibleTodos();
+      $("#listTitle").textContent = listTitleMap[activeFilter];
 
-            container.innerHTML = `<h3 style="margin:0 0 15px 0; font-size:1rem; color:var(--weread-blue); display:flex; justify-content:space-between;">
-                <span># ${currentFilter}</span>
-                <span style="font-size:0.7rem; font-weight:normal; color:#999;">点击卡片可编辑内容</span>
-            </h3>`;
+      if (!visibleTodos.length) {
+        list.innerHTML = `<div class="empty">当前视图没有待办。添加一条任务，或切换左侧筛选。</div>`;
+        updateStats();
+        return;
+      }
 
-            filteredMemos.slice().reverse().forEach(memo => {
-                const card = document.createElement('div');
-                card.className = 'memo-card';
-                card.onclick = (e) => {
-                    if(!e.target.classList.contains('del-btn')) triggerEditNote(memo);
-                };
+      list.innerHTML = visibleTodos.map((todo) => {
+        const priority = priorityMap[todo.priority] || priorityMap.medium;
+        const dueDate = getDueDate(todo);
+        return `
+          <article class="todo-item ${todo.done ? "done" : ""}">
+            <input class="check" type="checkbox" ${todo.done ? "checked" : ""} aria-label="切换任务状态" data-action="toggle" data-id="${todo.id}" />
+            <div>
+              <p class="todo-title">${escapeHTML(todo.title)}</p>
+              <div class="meta">
+                <span class="tag">${escapeHTML(todo.category)}</span>
+                <span class="tag ${priority.className}">${priority.label}</span>
+                <span class="tag">完成：${formatDueDate(dueDate)}</span>
+              </div>
+            </div>
+            <button class="delete-btn" type="button" data-action="delete" data-id="${todo.id}">删除</button>
+          </article>
+        `;
+      }).join("");
 
-                let displayContent = memo.desc.replace(/#([^\s#]+)/g, '<span class="memo-tag-link">#$1</span>');
-                card.innerHTML = `
-                    <span class="del-btn" onclick="event.stopPropagation(); deleteMemo(${memo.id})">×</span>
-                    <div>${displayContent}</div>
-                    <div style="font-size:0.65rem; color:#94A3B8; margin-top:8px;">${memo.time || ''}</div>
-                `;
-                container.appendChild(card);
-            });
-            if(filteredMemos.length === 0) container.innerHTML += '<div style="color:#999; font-size:0.8rem;">该标签下暂无灵感</div>';
-        } else {
-            inputArea.style.display = 'block';
-            const todayStr = new Date().toISOString().split('T')[0];
-            const filteredTasks = tasks.filter(t => {
-                if (currentFilter === 'today') return t.date === todayStr || (t.date < todayStr && !t.done);
-                return true;
-            });
-
-            filteredTasks.forEach(t => {
-                const item = document.createElement('div');
-                item.className = 'todo-item';
-                item.innerHTML = `
-                    <div class="todo-main">
-                        <input type="checkbox" ${t.done?'checked':''} onclick="toggleTask(${t.id})"> 
-                        <div style="margin-left:12px; text-decoration:${t.done?'line-through':'none'}; color:${t.done? '#CBD5E1':'inherit'}">${t.name}</div>
-                    </div>`;
-                container.appendChild(item);
-            });
-        }
-        
-        document.getElementById('stat-pending').innerText = tasks.filter(x=>!x.done).length;
-        document.getElementById('stat-focus').innerText = pomoCount;
+      updateStats();
     }
 
-    function updateClock() {
-        const now = new Date();
-        document.getElementById('live-time').innerText = now.toLocaleTimeString('zh-CN', {hour:'2-digit', minute:'2-digit'});
-        document.getElementById('live-date').innerText = now.toLocaleDateString('zh-CN', {weekday:'long', month:'long', day:'numeric'});
+    function escapeHTML(value) {
+      return value.replace(/[&<>'"]/g, (char) => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        "'": "&#39;",
+        '"': "&quot;"
+      }[char]));
     }
 
-    function setFilter(f, el, isTag = false) { 
-        currentFilter = f; 
-        document.querySelectorAll('.nav-item, .tag-node').forEach(x => x.classList.remove('active'));
-        if (el) el.classList.add('active');
-        if (!isTag) renderTagTree();
-        render(); 
-    }
+    $("#todoForm").addEventListener("submit", (event) => {
+      event.preventDefault();
+      const title = $("#taskInput").value.trim();
+      if (!title) return;
 
-    function toggleTask(id) {
-        const task = tasks.find(t => t.id === id);
-        if(task) { task.done = !task.done; save(); }
-    }
+      todos.unshift({
+        id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
+        title,
+        category: $("#categoryInput").value,
+        priority: $("#priorityInput").value,
+        dueDate: $("#dueDateInput").value,
+        date: todayISO(),
+        done: false
+      });
 
-    function addTask() {
-        const input = document.getElementById('t-input');
-        if(!input.value.trim()) return;
-        tasks.push({ id: Date.now(), name: input.value, date: document.getElementById('t-date').value || "", tagId: selectedTagId, done: false });
-        input.value = ""; save();
-    }
+      $("#taskInput").value = "";
+      $("#dueDateInput").value = todayISO();
+      saveTodos();
+      renderTodos();
+    });
 
-    function createNewTag() {
-        const name = document.getElementById('new-tag-name').value;
-        if(!name) return;
-        tags.push({ id: 't'+Date.now(), name, color: document.getElementById('new-tag-color').value });
-        renderTags(); save();
-    }
+    $("#todoList").addEventListener("click", (event) => {
+      const actionTarget = event.target.closest("[data-action]");
+      if (!actionTarget) return;
+      const { action, id } = actionTarget.dataset;
 
-    function renderTags() {
-        document.getElementById('tag-selector').innerHTML = tags.map(t => `<span class="tag-pill ${selectedTagId===t.id?'active':''}" style="color:${t.color}" onclick="selectedTagId='${t.id}'; renderTags()">${t.name}</span>`).join('');
-    }
+      if (action === "toggle") {
+        todos = todos.map((todo) => todo.id === id ? { ...todo, done: !todo.done } : todo);
+      }
 
-    // --- 灵感存档交互 ---
-    function toggleNoteEditor() {
-        const disp = document.getElementById('note-display'), edit = document.getElementById('note-editor');
-        const textarea = document.getElementById('n-content');
-        if (edit.style.display === 'block') {
-            edit.style.display = 'none'; disp.style.display = 'block';
-            textarea.value = ''; delete textarea.dataset.editId;
-            document.getElementById('note-type-label').innerText = "📖 灵感回顾";
-        } else {
-            edit.style.display = 'block'; disp.style.display = 'none';
-            textarea.focus();
-        }
-    }
+      if (action === "delete") {
+        todos = todos.filter((todo) => todo.id !== id);
+      }
 
-    function triggerEditNote(memo) {
-        toggleNoteEditor(); // 确保切换到编辑器
-        const textarea = document.getElementById('n-content');
-        textarea.value = memo.desc;
-        textarea.dataset.editId = memo.id;
-        document.getElementById('note-type-label').innerText = "✍️ 编辑灵感";
-        textarea.focus();
-    }
+      saveTodos();
+      renderTodos();
+    });
 
-    function saveNote() {
-        const textarea = document.getElementById('n-content');
-        const content = textarea.value.trim();
-        if(!content) return;
-        
-        const parsed = parseTags(content);
-        const editId = textarea.dataset.editId;
+    $("#filters").addEventListener("click", (event) => {
+      const button = event.target.closest(".filter-btn");
+      if (!button) return;
+      activeFilter = button.dataset.filter;
+      document.querySelectorAll(".filter-btn").forEach((item) => item.classList.toggle("active", item === button));
+      renderTodos();
+    });
 
-        if (editId) {
-            const idx = myNotes.findIndex(m => m.id == editId);
-            if (idx !== -1) {
-                myNotes[idx].desc = content;
-                myNotes[idx].parsedTags = parsed;
-                myNotes[idx].time = new Date().toLocaleString() + " (已编辑)";
-            }
-        } else {
-            myNotes.push({ 
-                id: Date.now(),
-                desc: content, 
-                parsedTags: parsed,
-                time: new Date().toLocaleString()
-            });
-        }
-        
-        toggleNoteEditor();
-        save();
-        nextBook();
-    }
+    $("#clearDoneBtn").addEventListener("click", () => {
+      todos = todos.filter((todo) => !todo.done);
+      saveTodos();
+      renderTodos();
+    });
 
-    function deleteMemo(id) {
-        if(confirm('确定移除这段灵感存档吗？')) {
-            myNotes = myNotes.filter(m => m.id !== id);
-            save();
-        }
-    }
+    $("#dueDateInput").value = todayISO();
 
-    function nextBook() {
-        const pool = (myNotes.length > 0 && Math.random() < 0.7) ? myNotes : bookLibrary;
-        const b = pool[Math.floor(Math.random() * pool.length)];
-        document.getElementById('book-title').innerText = b.title || "灵感摘录";
-        document.getElementById('book-author').innerText = b.author || "佚名";
-        document.getElementById('book-desc').innerText = b.desc;
-    }
+    $("#dailyNote").value = localStorage.getItem(noteKey) || "";
+    $("#dailyNote").addEventListener("input", (event) => localStorage.setItem(noteKey, event.target.value));
 
-    // --- 番茄钟 ---
-    let pTime=1500, pInt=null;
-    function resetPomo() { pTime=document.getElementById('p-min').value*60; updatePomoDisp(); clearInterval(pInt); pInt=null; document.getElementById('p-start').innerText='开始专注'; }
-    function togglePomo() {
-        if(pInt) { clearInterval(pInt); pInt=null; document.getElementById('p-start').innerText='继续'; }
-        else { 
-            document.getElementById('p-start').innerText='计时中...';
-            pInt=setInterval(()=>{ pTime--; updatePomoDisp(); if(pTime<=0){pomoCount++; save(); resetPomo(); alert('番茄完成！');}},1000); 
-        }
-    }
-    function updatePomoDisp() { const m=Math.floor(pTime/60), s=pTime%60; document.getElementById('timer-val').innerText=`${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`; }
-</script>
+    renderClock();
+    setInterval(renderClock, 1000);
+    renderTodos();
+  </script>
 </body>
 </html>
